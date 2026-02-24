@@ -1,0 +1,151 @@
+CREATE TABLE Tipo_usuario (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE Pais (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE Estado (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    sigla VARCHAR(2) NOT NULL,
+    pais_id INT NOT NULL,
+    FOREIGN KEY (pais_id) REFERENCES Pais(id)
+);
+
+CREATE TABLE Cidade (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    estado_id INT NOT NULL,
+    FOREIGN KEY (estado_id) REFERENCES Estado(id)
+);
+
+CREATE TABLE Usuario (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    telefone VARCHAR(20),
+    bio TEXT,
+    cidade_id INT,
+    tipo_usuario_id INT NOT NULL,
+    FOREIGN KEY (cidade_id) REFERENCES Cidade(id),
+    FOREIGN KEY (tipo_usuario_id) REFERENCES Tipo_usuario(id)
+);
+
+CREATE TABLE Documentos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    nome_documento VARCHAR(150) NOT NULL,
+    tipo_documento VARCHAR(50),
+    data_upload DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES Usuario(id)
+);
+
+CREATE TABLE Categoria (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE Status_campanha (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE Projeto (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(150) NOT NULL,
+    descricao TEXT NOT NULL,
+    categoria_id INT NOT NULL,
+    criador_id INT NOT NULL,
+    cidade_id INT NOT NULL,
+    data_inicio DATE,
+    data_fim DATE,
+    meta_participantes INT,
+    status_id INT NOT NULL,
+    data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES Categoria(id),
+    FOREIGN KEY (criador_id) REFERENCES Usuario(id),
+    FOREIGN KEY (cidade_id) REFERENCES Cidade(id),
+    FOREIGN KEY (status_id) REFERENCES Status_campanha(id)
+);
+
+CREATE TABLE Info_campanha (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    projeto_id INT NOT NULL,
+    objetivos TEXT,
+    publico_alvo TEXT,
+    impacto_esperado TEXT,
+    regras TEXT,
+    observacoes TEXT,
+    FOREIGN KEY (projeto_id) REFERENCES Projeto(id)
+);
+
+CREATE TABLE Status_servico (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE Servicos_disponiveis (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    projeto_id INT NOT NULL,
+    nome_servico VARCHAR(150) NOT NULL,
+    descricao TEXT,
+    quantidade_necessaria INT,
+    status_servico_id INT NOT NULL,
+    FOREIGN KEY (projeto_id) REFERENCES Projeto(id),
+    FOREIGN KEY (status_servico_id) REFERENCES Status_servico(id)
+);
+
+CREATE TABLE Status_participacao (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL
+);
+
+CREATE TABLE Participacoes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    projeto_id INT NOT NULL,
+    servico_id INT NULL,
+    data_inscricao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status_participacao_id INT NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES Usuario(id),
+    FOREIGN KEY (projeto_id) REFERENCES Projeto(id),
+    FOREIGN KEY (servico_id) REFERENCES Servicos_disponiveis(id),
+    FOREIGN KEY (status_participacao_id) REFERENCES Status_participacao(id)
+);
+
+CREATE TABLE Avaliacoes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    projeto_id INT NOT NULL,
+    nota INT NOT NULL CHECK (nota BETWEEN 1 AND 5),
+    data_avaliacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (usuario_id, projeto_id),
+    FOREIGN KEY (usuario_id) REFERENCES Usuario(id),
+    FOREIGN KEY (projeto_id) REFERENCES Projeto(id)
+);
+
+CREATE TABLE Favoritos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    projeto_id INT NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES Usuario(id),
+    FOREIGN KEY (projeto_id) REFERENCES Projeto(id)
+);
+
+CREATE TABLE Checkin (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    participacao_id INT NOT NULL,
+    data_checkin DATETIME DEFAULT CURRENT_TIMESTAMP,
+    validado_por INT NOT NULL,
+    FOREIGN KEY (participacao_id) REFERENCES Participacoes(id),
+    FOREIGN KEY (validado_por) REFERENCES Usuario(id)
+);
+
+drop table checkin ;
+
+drop table pais ;
