@@ -32,6 +32,7 @@ CREATE TABLE Usuario (
     bio TEXT,
     cidade_id INT,
     tipo_usuario_id INT NOT NULL,
+    data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (cidade_id) REFERENCES Cidade(id),
     FOREIGN KEY (tipo_usuario_id) REFERENCES Tipo_usuario(id)
 );
@@ -48,6 +49,15 @@ CREATE TABLE Documentos (
 CREATE TABLE Categoria (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE Preferencias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    categoria_id INT NOT NULL,
+    FOREIGN KEY (usuario_id) REFERENCES Usuario(id),
+    FOREIGN KEY (categoria_id) REFERENCES Categoria(id),
+    UNIQUE (usuario_id, categoria_id)
 );
 
 CREATE TABLE Status_campanha (
@@ -133,6 +143,7 @@ CREATE TABLE Favoritos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     usuario_id INT NOT NULL,
     projeto_id INT NOT NULL,
+    UNIQUE (usuario_id, projeto_id),
     FOREIGN KEY (usuario_id) REFERENCES Usuario(id),
     FOREIGN KEY (projeto_id) REFERENCES Projeto(id)
 );
@@ -145,7 +156,3 @@ CREATE TABLE Checkin (
     FOREIGN KEY (participacao_id) REFERENCES Participacoes(id),
     FOREIGN KEY (validado_por) REFERENCES Usuario(id)
 );
-
-drop table checkin ;
-
-drop table pais ;
