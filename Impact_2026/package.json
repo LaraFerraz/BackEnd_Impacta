@@ -1,23 +1,30 @@
 {
   "name": "impact_2026",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Backend do projeto Impact 2026",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "pg": "^8.19.0",
-    "pg-hstore": "^2.3.4",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.5",
     "sequelize": "^6.37.7"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
     "nodemon": "^3.1.14",
-    "sequelize-cli": "^6.6.5"
+    "sequelize-cli": "^6.6.5",
+    "supertest": "^6.3.3"
   }
 }
