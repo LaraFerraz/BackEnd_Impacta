@@ -1,7 +1,3 @@
-/**
- * Testes para middleware de autenticação JWT
- */
-
 const { autenticar, autorizarProprio } = require('../../src/middleware/authMiddleware');
 const jwt = require('jsonwebtoken');
 

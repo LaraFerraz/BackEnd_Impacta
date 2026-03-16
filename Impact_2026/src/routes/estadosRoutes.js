@@ -7,10 +7,6 @@ const router = express.Router();
 const ITEMS_POR_PAGINA = 10;
 const ATRIBUTOS = ['id', 'nome', 'sigla', 'pais_id'];
 
-/**
- * GET /api/estados - Listar estados com paginação
- * Público: retorna apenas dados básicos
- */
 router.get('/', async (req, res) => {
   try {
     const pagina = Math.max(1, parseInt(req.query.page) || 1);
@@ -44,10 +40,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-/**
- * GET /api/estados/:id - Obtém estado específico
- * Público
- */
 router.get('/:id', async (req, res) => {
   try {
     const estado = await Estado.findByPk(req.params.id, {
@@ -73,10 +65,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/**
- * POST /api/estados - Criar novo estado (autenticado)
- * Protegido: apenas administradores
- */
 router.post('/', autenticar, async (req, res) => {
   try {
     const { nome, sigla, pais_id } = req.body;
@@ -128,10 +116,6 @@ router.post('/', autenticar, async (req, res) => {
   }
 });
 
-/**
- * PUT /api/estados/:id - Atualizar estado (autenticado)
- * Protegido: apenas administradores
- */
 router.put('/:id', autenticar, async (req, res) => {
   try {
     const { nome, sigla, pais_id } = req.body;
@@ -174,10 +158,6 @@ router.put('/:id', autenticar, async (req, res) => {
   }
 });
 
-/**
- * DELETE /api/estados/:id - Deletar estado (autenticado)
- * Protegido: apenas administradores
- */
 router.delete('/:id', autenticar, async (req, res) => {
   try {
     const estado = await Estado.findByPk(req.params.id);

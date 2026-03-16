@@ -1,31 +1,13 @@
-// Validador de dados de usuário com regex e regras de negócio
-// Segue boas práticas: funções pequenas (max 10 linhas) e específicas
-
-/**
- * Valida formato de email usando regex RFC5322
- * @param {string} email - Email a validar
- * @returns {boolean} - Email é válido
- */
 const validarEmail = (email) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 };
 
-/**
- * Valida formato de telefone brasileiro
- * @param {string} telefone - Telefone a validar
- * @returns {boolean} - Telefone é válido
- */
 const validarTelefone = (telefone) => {
   const telefoneRegex = /^[\d\s\-\(\)]{10,20}$/;
   return telefoneRegex.test(telefone.replace(/\s/g, ''));
 };
 
-/**
- * Valida CPF usando algoritmo de dígito verificador
- * @param {string} cpf - CPF a validar
- * @returns {boolean} - CPF é válido
- */
 const validarCPF = (cpf) => {
   const cpfLimpo = cpf.replace(/\D/g, '');
 
@@ -48,12 +30,6 @@ const validarCPF = (cpf) => {
   return d1 === parseInt(cpfLimpo.charAt(10)) && d2 === parseInt(cpfLimpo.charAt(11));
 };
 
-/**
- * Valida força da senha usando critérios de segurança
- * Retorna nível: fraca, média ou forte
- * @param {string} senha - Senha a analisar
- * @returns {object} - { valida: boolean, nivel: string, mensagem: string }
- */
 const validarForcaSenha = (senha) => {
   const criterios = {
     tamanho: senha.length >= 8,
@@ -64,18 +40,10 @@ const validarForcaSenha = (senha) => {
   };
 
   const criteriosAtingidos = Object.values(criterios).filter(Boolean).length;
-
-  let nivel = 'fraca';
-  if (criteriosAtingidos >= 4) {
-    nivel = 'forte';
-  } else if (criteriosAtingidos >= 3) {
-    nivel = 'media';
-  }
-
-  const valida = criteriosAtingidos >= 2 && senha.length >= 6;
+  let nivel = criteriosAtingidos >= 4 ? 'forte' : criteriosAtingidos >= 3 ? 'media' : 'fraca';
 
   return {
-    valida,
+    valida: criteriosAtingidos >= 2 && senha.length >= 6,
     nivel,
     mensagem: `Senha ${nivel} (${criteriosAtingidos}/5 critérios)`
   };

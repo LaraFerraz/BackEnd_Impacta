@@ -10,11 +10,6 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'impacta-secret-key-2026';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
-/**
- * Gera token JWT com dados do usuário
- * @param {object} user - Usuário autenticado
- * @returns {string} - Token JWT
- */
 const gerarToken = (user) => {
   return jwt.sign(
     { 
@@ -28,21 +23,38 @@ const gerarToken = (user) => {
   );
 };
 
-/**
- * Formata dados do usuário removendo senha
- * @param {object} user - Usuário do banco de dados
- * @returns {object} - Usuário sem senha
- */
 const formatarUsuario = (user) => {
   const { senha, ...userData } = user.toJSON();
   return userData;
 };
 
-/**
- * Busca ID da cidade por nome, retorna SP como padrão
- * @param {string} nomeCidade - Nome da cidade
- * @returns {number} - ID da cidade ou 1 (São Paulo padrão)
- */
+const gerarCPFValido = () => {
+  // Gera um CPF válido aleatório para quando o usuário não fornece
+  let cpf = '';
+  for (let i = 0; i < 9; i++) {
+    cpf += Math.floor(Math.random() * 10).toString();
+  }
+  
+  // Calcula primeiro dígito verificador
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    sum += parseInt(cpf.charAt(i)) * (10 - i);
+  }
+  let digit1 = 11 - (sum % 11);
+  digit1 = digit1 >= 10 ? 0 : digit1;
+  
+  // Calcula segundo dígito verificador
+  cpf += digit1.toString();
+  sum = 0;
+  for (let i = 0; i < 10; i++) {
+    sum += parseInt(cpf.charAt(i)) * (11 - i);
+  }
+  let digit2 = 11 - (sum % 11);
+  digit2 = digit2 >= 10 ? 0 : digit2;
+  
+  return cpf + digit2.toString();
+};
+
 const buscarCidadeId = async (nomeCidade) => {
   if (!nomeCidade || !nomeCidade.trim()) {
     return 1; // São Paulo padrão
@@ -55,11 +67,6 @@ const buscarCidadeId = async (nomeCidade) => {
   return cidade ? cidade.id : 1;
 };
 
-/**
- * Trata erros no cadastro com status HTTP apropriados
- * @param {object} error - Erro lançado
- * @param {object} res - Response object
- */
 const tratarErroRegistro = (error, res) => {
   if (error.name === 'SequelizeValidationError') {
     return res.status(400).json({
@@ -85,10 +92,18 @@ const tratarErroRegistro = (error, res) => {
   });
 };
 
-// POST /api/auth/register - Cadastro de usuário
-router.post('/register', validarCadastro, async (req, res) => {
+// POST /api/auth/register
+router.post('/register', async (req, res) => {
   try {
-    const { nome, email, password, cpf, telefone, cidade, interesses } = req.body;
+    const { nome, email, password, telefone, cidade, interesses, cpf } = req.body;
+
+    // Validar campos obrigatórios
+    if (!nome || !email || !password || !telefone) {
+      return res.status(400).json({
+        message: 'Nome, email, senha e telefone são obrigatórios',
+        field: 'form'
+      });
+    }
 
     // Verificar se email já existe
     const usuarioExistente = await Usuario.findOne({ where: { email } });
@@ -99,14 +114,8 @@ router.post('/register', validarCadastro, async (req, res) => {
       });
     }
 
-    // Verificar se CPF já existe
-    const cpfExistente = await Usuario.findOne({ where: { cpf } });
-    if (cpfExistente) {
-      return res.status(409).json({ 
-        message: 'CPF já cadastrado',
-        field: 'cpf'
-      });
-    }
+    // Usar CPF fornecido ou gerar um novo
+    const cpfFinal = cpf && cpf.trim() ? cpf.trim() : gerarCPFValido();
 
     const senhaHash = await bcrypt.hash(password, 10);
     const cidade_id = await buscarCidadeId(cidade);
@@ -114,14 +123,17 @@ router.post('/register', validarCadastro, async (req, res) => {
     const novoUsuario = await Usuario.create({
       nome: nome.trim(),
       email: email.toLowerCase().trim(),
-      cpf: cpf.replace(/\D/g, ''),
       senha: senhaHash,
       telefone: telefone.trim(),
       cidade_id,
       tipo_usuario_id: 2,
-      interesses: Array.isArray(interesses) ? interesses : []
+      cpf: cpfFinal,
+      interesses: interesses ? JSON.stringify(interesses) : null,
+      data_cadastro: new Date(),
+      ativo: true
     });
 
+    // Buscar usuário completo com relacionamentos
     const usuarioCompleto = await Usuario.findByPk(novoUsuario.id, {
       include: [
         { model: Cidade, as: 'cidade' },
@@ -142,16 +154,15 @@ router.post('/register', validarCadastro, async (req, res) => {
   }
 });
 
-// POST /api/auth/login - Login de usuário
-router.post('/login', validarLogin, async (req, res) => {
+// POST /api/auth/login
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
     // Buscar usuário
     const usuario = await Usuario.findOne({ 
       where: { 
-        email: email.toLowerCase().trim(),
-        ativo: true 
+        email: email.toLowerCase().trim()
       },
       include: [
         { model: Cidade, as: 'cidade' },
@@ -193,7 +204,7 @@ router.post('/login', validarLogin, async (req, res) => {
   }
 });
 
-// POST /api/auth/verify - Verificar token
+// POST /api/auth/verify
 router.post('/verify', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -210,7 +221,7 @@ router.post('/verify', async (req, res) => {
       ]
     });
 
-    if (!usuario || !usuario.ativo) {
+    if (!usuario) {
       return res.status(401).json({ message: 'Token inválido' });
     }
 

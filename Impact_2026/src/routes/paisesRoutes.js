@@ -7,10 +7,6 @@ const router = express.Router();
 const ITEMS_POR_PAGINA = 10;
 const ATRIBUTOS = ['id', 'nome'];
 
-/**
- * GET /api/paises - Listar países com paginação
- * Público: retorna apenas dados básicos
- */
 router.get('/', async (req, res) => {
   try {
     const pagina = Math.max(1, parseInt(req.query.page) || 1);
@@ -47,10 +43,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-/**
- * GET /api/paises/:id - Obtém país específico
- * Público
- */
 router.get('/:id', async (req, res) => {
   try {
     const pais = await Pais.findByPk(req.params.id, {
@@ -79,10 +71,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/**
- * POST /api/paises - Criar novo país (autenticado)
- * Protegido: apenas administradores
- */
 router.post('/', autenticar, async (req, res) => {
   try {
     const { nome } = req.body;
@@ -123,10 +111,6 @@ router.post('/', autenticar, async (req, res) => {
   }
 });
 
-/**
- * PUT /api/paises/:id - Atualizar país (autenticado)
- * Protegido: apenas administradores
- */
 router.put('/:id', autenticar, async (req, res) => {
   try {
     const { nome } = req.body;
@@ -174,10 +158,6 @@ router.put('/:id', autenticar, async (req, res) => {
   }
 });
 
-/**
- * DELETE /api/paises/:id - Deletar país (autenticado)
- * Protegido: apenas administradores
- */
 router.delete('/:id', autenticar, async (req, res) => {
   try {
     const pais = await Pais.findByPk(req.params.id);

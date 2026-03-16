@@ -1,8 +1,3 @@
-/**
- * Testes para validadores de usuário
- * Testa: email, CPF, telefone, força de senha
- */
-
 const {
   validarEmail,
   validarCPF,

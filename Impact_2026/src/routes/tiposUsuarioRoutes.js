@@ -7,10 +7,6 @@ const router = express.Router();
 const ITEMS_POR_PAGINA = 10;
 const ATRIBUTOS = ['id', 'nome'];
 
-/**
- * GET /api/tipos-usuario - Listar tipos de usuário com paginação
- * Público: retorna apenas dados básicos
- */
 router.get('/', async (req, res) => {
   try {
     const pagina = Math.max(1, parseInt(req.query.page) || 1);
@@ -48,10 +44,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-/**
- * GET /api/tipos-usuario/:id - Obtém tipo específico
- * Público
- */
 router.get('/:id', async (req, res) => {
   try {
     const tipo = await Tipo_usuario.findByPk(req.params.id, {
@@ -81,10 +73,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/**
- * POST /api/tipos-usuario - Criar novo tipo (autenticado)
- * Protegido: apenas administradores
- */
 router.post('/', autenticar, async (req, res) => {
   try {
     const { nome } = req.body;
@@ -125,10 +113,6 @@ router.post('/', autenticar, async (req, res) => {
   }
 });
 
-/**
- * PUT /api/tipos-usuario/:id - Atualizar tipo (autenticado)
- * Protegido: apenas administradores
- */
 router.put('/:id', autenticar, async (req, res) => {
   try {
     const { nome } = req.body;
@@ -176,11 +160,6 @@ router.put('/:id', autenticar, async (req, res) => {
   }
 });
 
-/**
- * DELETE /api/tipos-usuario/:id - Deletar tipo (autenticado)
- * Protegido: apenas administradores
- * Restrição: não pode deletar tipos com usuários associados
- */
 router.delete('/:id', autenticar, async (req, res) => {
   try {
     const tipo = await Tipo_usuario.findByPk(req.params.id);

@@ -13,10 +13,6 @@ module.exports = (sequelize) => {
       validate: {
         notEmpty: {
           msg: 'Nome é obrigatório'
-        },
-        len: {
-          args: [2, 100],
-          msg: 'Nome deve ter entre 2 e 100 caracteres'
         }
       }
     },
@@ -32,18 +28,6 @@ module.exports = (sequelize) => {
         },
         notEmpty: {
           msg: 'Email é obrigatório'
-        }
-      }
-    },
-    cpf: {
-      type: DataTypes.STRING(14),
-      allowNull: false,
-      unique: {
-        msg: 'CPF já está cadastrado'
-      },
-      validate: {
-        notEmpty: {
-          msg: 'CPF é obrigatório'
         }
       }
     },
@@ -87,31 +71,29 @@ module.exports = (sequelize) => {
       }
     },
     interesses: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      defaultValue: []
+      type: DataTypes.TEXT,
+      allowNull: true
     },
     ativo: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true
+      defaultValue: true,
+      allowNull: true
     },
     data_cadastro: {
       type: DataTypes.DATE,
+      allowNull: true,
       defaultValue: DataTypes.NOW
+    },
+    cpf: {
+      type: DataTypes.STRING(14),
+      allowNull: false,
+      unique: {
+        msg: 'CPF já está em uso'
+      }
     }
   }, {
     tableName: 'Usuario',
-    timestamps: false,
-    indexes: [
-      {
-        unique: true,
-        fields: ['email']
-      },
-      {
-        unique: true,
-        fields: ['cpf']
-      }
-    ]
+    timestamps: false
   });
 
   // Associações

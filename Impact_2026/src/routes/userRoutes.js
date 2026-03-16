@@ -10,20 +10,11 @@ const ITEMS_POR_PAGINA = 10;
 const ATRIB_PUBLICOS = ['id', 'nome', 'email', 'telefone', 'data_cadastro'];
 const ATRIB_COMPLETOS = ['id', 'nome', 'email', 'cpf', 'telefone', 'interesses', 'data_cadastro'];
 
-/**
- * Parse parâmetros de paginação
- * @param {number} pagina - Número da página (padrão 1)
- * @returns {object} - { limit, offset }
- */
 const extrairPaginacao = (pagina) => {
   const pp = Math.max(1, parseInt(pagina) || 1);
   return { limit: ITEMS_POR_PAGINA, offset: (pp - 1) * ITEMS_POR_PAGINA };
 };
 
-/**
- * GET /api/users - Listar usuários com paginação
- * Público: retorna apenas dados básicos de usuários ativos
- */
 router.get('/', async (req, res) => {
   try {
     const paginacao = extrairPaginacao(req.query.page);
@@ -56,10 +47,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-/**
- * GET /api/users/:id - Obter perfil do usuário
- * Público: retorna dados básicos
- */
 router.get('/:id', async (req, res) => {
   try {
     const usuario = await Usuario.findByPk(req.params.id, {
@@ -85,10 +72,6 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/**
- * GET /api/users/:id/profile - Obter perfil completo (autenticado)
- * Protegido: usuário só acessa seus próprios dados
- */
 router.get('/:id/profile', autenticar, autorizarProprio, async (req, res) => {
   try {
     const usuario = await Usuario.findByPk(req.params.id, {
@@ -114,11 +97,6 @@ router.get('/:id/profile', autenticar, autorizarProprio, async (req, res) => {
   }
 });
 
-/**
- * PUT /api/users/:id - Atualizar perfil (autenticado)
- * Protegido: usuário só edita seus próprios dados
- * Email não pode ser alterado
- */
 router.put('/:id', autenticar, autorizarProprio, validarAtualizacao, async (req, res) => {
   try {
     const usuario = await Usuario.findByPk(req.params.id);
@@ -146,10 +124,6 @@ router.put('/:id', autenticar, autorizarProprio, validarAtualizacao, async (req,
   }
 });
 
-/**
- * DELETE /api/users/:id - Desativar conta (soft delete, autenticado)
- * Protegido: usuário só deleta sua própria conta
- */
 router.delete('/:id', autenticar, autorizarProprio, async (req, res) => {
   try {
     const usuario = await Usuario.findByPk(req.params.id);
@@ -171,11 +145,6 @@ router.delete('/:id', autenticar, autorizarProprio, async (req, res) => {
   }
 });
 
-/**
- * Atualiza dados do usuário de forma segura
- * @param {object} usuario - Usuário do banco
- * @param {object} dados - Dados a atualizar
- */
 const atualizarDadosUsuario = async (usuario, dados) => {
   const atualizacao = {};
 
@@ -196,9 +165,6 @@ const atualizarDadosUsuario = async (usuario, dados) => {
   await usuario.update(atualizacao);
 };
 
-/**
- * Trata erros na atualização
- */
 const tratarErroAtualizacao = (error, res) => {
   if (error.name === 'SequelizeValidationError') {
     return res.status(400).json({
