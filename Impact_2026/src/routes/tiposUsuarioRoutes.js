@@ -1,5 +1,5 @@
 const express = require('express');
-const { Tipo_usuario, Usuario } = require('../models');
+const { TipoUsuario, Usuario } = require('../models');
 const { autenticar } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     const limit = ITEMS_POR_PAGINA;
     const offset = (pagina - 1) * ITEMS_POR_PAGINA;
 
-    const { count, rows } = await Tipo_usuario.findAndCountAll({
+    const { count, rows } = await TipoUsuario.findAndCountAll({
       attributes: ATRIBUTOS,
       include: [
         {
@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   try {
-    const tipo = await Tipo_usuario.findByPk(req.params.id, {
+    const tipo = await TipoUsuario.findByPk(req.params.id, {
       attributes: ATRIBUTOS,
       include: [
         {
@@ -84,7 +84,7 @@ router.post('/', autenticar, async (req, res) => {
       });
     }
 
-    const tipoExistente = await Tipo_usuario.findOne({
+    const tipoExistente = await TipoUsuario.findOne({
       where: { nome: nome.trim() }
     });
 
@@ -95,7 +95,7 @@ router.post('/', autenticar, async (req, res) => {
       });
     }
 
-    const novoTipo = await Tipo_usuario.create({
+    const novoTipo = await TipoUsuario.create({
       nome: nome.trim()
     });
 
@@ -124,7 +124,7 @@ router.put('/:id', autenticar, async (req, res) => {
       });
     }
 
-    const tipo = await Tipo_usuario.findByPk(req.params.id);
+    const tipo = await TipoUsuario.findByPk(req.params.id);
 
     if (!tipo) {
       return res.status(404).json({ message: 'Tipo de usuário não encontrado' });
@@ -132,7 +132,7 @@ router.put('/:id', autenticar, async (req, res) => {
 
     // Verifica se novo nome já existe
     if (nome.trim() !== tipo.nome) {
-      const tipoExistente = await Tipo_usuario.findOne({
+      const tipoExistente = await TipoUsuario.findOne({
         where: { nome: nome.trim() }
       });
 
@@ -162,7 +162,7 @@ router.put('/:id', autenticar, async (req, res) => {
 
 router.delete('/:id', autenticar, async (req, res) => {
   try {
-    const tipo = await Tipo_usuario.findByPk(req.params.id);
+    const tipo = await TipoUsuario.findByPk(req.params.id);
 
     if (!tipo) {
       return res.status(404).json({ message: 'Tipo de usuário não encontrado' });

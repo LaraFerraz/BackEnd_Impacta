@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { Usuario, Cidade, Tipo_usuario } = require('../models');
+const { Usuario, Cidade, TipoUsuario } = require('../models');
 const { validarAtualizacao } = require('../validators/UserValidator');
 const { autenticar, autorizarProprio } = require('../middleware/authMiddleware');
 
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
       attributes: ATRIB_PUBLICOS,
       include: [
         { model: Cidade, as: 'cidade', attributes: ['nome'] },
-        { model: Tipo_usuario, as: 'tipo', attributes: ['nome'] }
+        { model: TipoUsuario, as: 'tipo', attributes: ['nome'] }
       ],
       order: [['data_cadastro', 'DESC']],
       ...paginacao
@@ -53,7 +53,7 @@ router.get('/:id', async (req, res) => {
       attributes: ATRIB_PUBLICOS,
       include: [
         { model: Cidade, as: 'cidade', attributes: ['nome'] },
-        { model: Tipo_usuario, as: 'tipo', attributes: ['nome'] }
+        { model: TipoUsuario, as: 'tipo', attributes: ['nome'] }
       ]
     });
 

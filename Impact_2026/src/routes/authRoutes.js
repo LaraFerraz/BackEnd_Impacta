@@ -1,14 +1,23 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Usuario, Cidade, Tipo_usuario } = require('../models');
+const { Usuario, Cidade, TipoUsuario } = require('../models');
 const { validarCadastro, validarLogin } = require('../validators/UserValidator');
 
 const router = express.Router();
 
-// Configuração JWT
-const JWT_SECRET = process.env.JWT_SECRET || 'impacta-secret-key-2026';
+// Configuração JWT com validação segura
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const DEFAULT_JWT_SECRET = 'impacta-secret-key-2026-dev-only';
+const ACTUAL_JWT_SECRET = JWT_SECRET || DEFAULT_JWT_SECRET;
+
+// Avisar se usar valor padrão em desenvolvimento
+if (!JWT_SECRET && process.env.NODE_ENV !== 'production') {
+  console.warn(
+    '⚠️  AVISO: JWT_SECRET não definida em authRoutes. Usando valor padrão (seguro apenas para desenvolvimento).'
+  );
+}
 
 const gerarToken = (user) => {
   return jwt.sign(
@@ -18,7 +27,7 @@ const gerarToken = (user) => {
       nome: user.nome,
       tipo: user.tipo_usuario_id 
     },
-    JWT_SECRET,
+    ACTUAL_JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN }
   );
 };
@@ -137,7 +146,7 @@ router.post('/register', async (req, res) => {
     const usuarioCompleto = await Usuario.findByPk(novoUsuario.id, {
       include: [
         { model: Cidade, as: 'cidade' },
-        { model: Tipo_usuario, as: 'tipo' }
+        { model: TipoUsuario, as: 'tipo' }
       ]
     });
 
@@ -166,7 +175,7 @@ router.post('/login', async (req, res) => {
       },
       include: [
         { model: Cidade, as: 'cidade' },
-        { model: Tipo_usuario, as: 'tipo' }
+        { model: TipoUsuario, as: 'tipo' }
       ]
     });
 
@@ -213,11 +222,11 @@ router.post('/verify', async (req, res) => {
       return res.status(401).json({ message: 'Token não fornecido' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, ACTUAL_JWT_SECRET);
     const usuario = await Usuario.findByPk(decoded.id, {
       include: [
         { model: Cidade, as: 'cidade' },
-        { model: Tipo_usuario, as: 'tipo' }
+        { model: TipoUsuario, as: 'tipo' }
       ]
     });
 

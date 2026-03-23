@@ -1,6 +1,26 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'impacta-secret-key-2026';
+// Validação segura do JWT_SECRET
+const JWT_SECRET = process.env.JWT_SECRET;
+
+// Em produção, JWT_SECRET é obrigatório
+if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
+  throw new Error(
+    'ERRO CRÍTICO: JWT_SECRET não está definida em variáveis de ambiente. ' +
+    'Configure a variável JWT_SECRET no arquivo .env em produção.'
+  );
+}
+
+// Em desenvolvimento, avisar se usar valor padrão
+if (!JWT_SECRET && process.env.NODE_ENV !== 'production') {
+  console.warn(
+    '⚠️  AVISO: JWT_SECRET não definida. Usando valor padrão (seguro apenas para desenvolvimento). ' +
+    'Configure a variável JWT_SECRET no arquivo .env.'
+  );
+}
+
+const DEFAULT_JWT_SECRET = 'impacta-secret-key-2026-dev-only';
+const ACTUAL_SECRET = JWT_SECRET || DEFAULT_JWT_SECRET;
 
 const autenticar = (req, res, next) => {
   try {
@@ -11,7 +31,7 @@ const autenticar = (req, res, next) => {
     }
 
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, ACTUAL_SECRET);
     req.usuario = decoded;
     next();
   } catch (error) {

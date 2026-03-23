@@ -103,7 +103,7 @@ module.exports = (sequelize) => {
       as: 'cidade'
     });
     
-    Usuario.belongsTo(models.Tipo_usuario, {
+    Usuario.belongsTo(models.TipoUsuario, {
       foreignKey: 'tipo_usuario_id',
       as: 'tipo'
     });
