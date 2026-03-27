@@ -8,7 +8,7 @@ module.exports = (sequelize) => {
       autoIncrement: true
     },
     nome: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.STRING(150),
       allowNull: false,
       validate: {
         notEmpty: {
@@ -17,7 +17,7 @@ module.exports = (sequelize) => {
       }
     },
     email: {
-      type: DataTypes.STRING(100),
+      type: DataTypes.STRING(150),
       allowNull: false,
       unique: {
         msg: 'Email já está em uso'
@@ -70,26 +70,17 @@ module.exports = (sequelize) => {
         key: 'id'
       }
     },
-    interesses: {
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    ativo: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-      allowNull: true
-    },
-    data_cadastro: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      defaultValue: DataTypes.NOW
-    },
     cpf: {
       type: DataTypes.STRING(14),
       allowNull: false,
       unique: {
         msg: 'CPF já está em uso'
       }
+    },
+    data_criacao: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: DataTypes.NOW
     }
   }, {
     tableName: 'Usuario',

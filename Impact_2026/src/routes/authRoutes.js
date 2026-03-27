@@ -66,14 +66,14 @@ const gerarCPFValido = () => {
 
 const buscarCidadeId = async (nomeCidade) => {
   if (!nomeCidade || !nomeCidade.trim()) {
-    return 1; // São Paulo padrão
+    return null; // Sem cidade padrão
   }
 
   const cidade = await Cidade.findOne({
     where: { nome: nomeCidade.trim() }
   });
 
-  return cidade ? cidade.id : 1;
+  return cidade ? cidade.id : null;
 };
 
 const tratarErroRegistro = (error, res) => {
@@ -104,7 +104,7 @@ const tratarErroRegistro = (error, res) => {
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { nome, email, password, telefone, cidade, interesses, cpf } = req.body;
+    const { nome, email, password, telefone, cidade, cpf } = req.body;
 
     // Validar campos obrigatórios
     if (!nome || !email || !password || !telefone) {
@@ -136,10 +136,7 @@ router.post('/register', async (req, res) => {
       telefone: telefone.trim(),
       cidade_id,
       tipo_usuario_id: 2,
-      cpf: cpfFinal,
-      interesses: interesses ? JSON.stringify(interesses) : null,
-      data_cadastro: new Date(),
-      ativo: true
+      cpf: cpfFinal
     });
 
     // Buscar usuário completo com relacionamentos
