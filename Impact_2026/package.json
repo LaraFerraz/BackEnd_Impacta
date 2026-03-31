@@ -6,6 +6,7 @@
     "start": "npm run init:db && node src/index.js",
     "dev": "npm run init:db && nodemon src/index.js",
     "init:db": "node src/initDb.js",
+    "setup:db": "node scripts/populate-db.js",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch"
   },

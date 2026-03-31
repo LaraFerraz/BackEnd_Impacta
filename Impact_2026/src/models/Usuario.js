@@ -46,12 +46,7 @@ module.exports = (sequelize) => {
     },
     telefone: {
       type: DataTypes.STRING(20),
-      allowNull: false,
-      validate: {
-        notEmpty: {
-          msg: 'Telefone é obrigatório'
-        }
-      }
+      allowNull: true
     },
     cidade_id: {
       type: DataTypes.INTEGER,
@@ -72,7 +67,7 @@ module.exports = (sequelize) => {
     },
     cpf: {
       type: DataTypes.STRING(14),
-      allowNull: false,
+      allowNull: true,
       unique: {
         msg: 'CPF já está em uso'
       }
@@ -97,6 +92,31 @@ module.exports = (sequelize) => {
     Usuario.belongsTo(models.TipoUsuario, {
       foreignKey: 'tipo_usuario_id',
       as: 'tipo'
+    });
+
+    Usuario.hasMany(models.Projeto, {
+      foreignKey: 'criador_id',
+      as: 'projetos_criados'
+    });
+
+    Usuario.hasMany(models.Preferencias, {
+      foreignKey: 'usuario_id',
+      as: 'preferencias'
+    });
+
+    Usuario.hasMany(models.Participacoes, {
+      foreignKey: 'usuario_id',
+      as: 'participacoes'
+    });
+
+    Usuario.hasMany(models.Avaliacoes, {
+      foreignKey: 'usuario_id',
+      as: 'avaliacoes'
+    });
+
+    Usuario.hasMany(models.Favoritos, {
+      foreignKey: 'usuario_id',
+      as: 'favoritos'
     });
   };
 

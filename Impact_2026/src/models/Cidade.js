@@ -34,6 +34,11 @@ module.exports = (sequelize) => {
       foreignKey: 'cidade_id',
       as: 'usuarios'
     });
+
+    Cidade.hasMany(models.Projeto, {
+      foreignKey: 'cidade_id',
+      as: 'projetos'
+    });
   };
 
   return Cidade;
