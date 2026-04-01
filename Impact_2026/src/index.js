@@ -59,6 +59,13 @@ app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/paises', require('./routes/paisesRoutes'));
 app.use('/api/estados', require('./routes/estadosRoutes'));
 app.use('/api/tipos-usuario', require('./routes/tiposUsuarioRoutes'));
+app.use('/api/categorias', require('./routes/categoriasRoutes'));
+app.use('/api/projetos', require('./routes/projetosRoutes'));
+app.use('/api/preferencias', require('./routes/preferenciasRoutes'));
+app.use('/api/participacoes', require('./routes/participacoesRoutes'));
+app.use('/api/avaliacoes', require('./routes/avaliacoesRoutes'));
+app.use('/api/favoritos', require('./routes/favoritosRoutes'));
+app.use('/api/servicos', require('./routes/servicosDisponiveisRoutes'));
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -80,12 +87,6 @@ async function startServer() {
     // Testar conexão com o banco
     await sequelize.authenticate();
     console.log('Conexão com o banco de dados estabelecida com sucesso.');
-    
-    // Sincronizar modelos (apenas em desenvolvimento)
-    if (process.env.NODE_ENV !== 'production') {
-      await sequelize.sync({ alter: true });
-      console.log('Modelos sincronizados com sucesso.');
-    }
     
     app.listen(PORT, () => {
       console.log(`Servidor rodando na porta ${PORT}`);

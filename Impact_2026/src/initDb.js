@@ -85,45 +85,18 @@ async function waitForMySQL(maxAttempts = 40) {
  */
 async function syncDatabase() {
   try {
-    console.log('\n🔄 Sincronizando banco de dados...');
+    console.log('\n🔄 Verificando banco de dados...');
     require('dotenv').config();
     
     const { sequelize } = require('./models');
     
     // Validar conexão
     await sequelize.authenticate();
-    console.log('✅ Conexão com banco estabelecida');
-    
-    // Sincronizar com retry automático
-    let retries = 5;
-    let synced = false;
-    let lastError;
-    
-    while (retries > 0 && !synced) {
-      try {
-        await sequelize.sync({ alter: true });
-        console.log('✅ Tabelas sincronizadas com sucesso');
-        synced = true;
-      } catch (error) {
-        lastError = error;
-        retries--;
-        if (retries > 0) {
-          console.log(`⚠️  Erro ao sincronizar, tentando novamente... (${retries} tentativas restantes)`);
-          console.log(`   Erro: ${error.message.substring(0, 100)}`);
-          await new Promise(resolve => setTimeout(resolve, 3000)); // Aguardar 3s
-        }
-      }
-    }
-    
-    if (!synced) {
-      console.error(`❌ Falha na sincronização após 5 tentativas: ${lastError.message}`);
-      return false;
-    }
+    console.log('✅ Banco de dados está operacional');
     
     return true;
   } catch (error) {
-    console.error('❌ Erro ao sincronizar banco:', error.message);
-    console.log('💡 O servidor pode tentar sincronizar novamente ao iniciar');
+    console.error('❌ Erro ao conectar ao banco:', error.message);
     return false;
   }
 }
