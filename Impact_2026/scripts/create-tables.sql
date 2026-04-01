@@ -1,14 +1,4 @@
--- ================================
--- Script de criação do banco Impacta
--- ================================
 
--- DROP DATABASE IF EXISTS impacta;
--- CREATE DATABASE impacta CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
--- USE impacta;
-
--- =====================
--- Tabelas Base
--- =====================
 
 CREATE TABLE IF NOT EXISTS Tipo_usuario (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -49,9 +39,6 @@ CREATE TABLE IF NOT EXISTS Usuario (
     FOREIGN KEY (tipo_usuario_id) REFERENCES Tipo_usuario(id) ON DELETE RESTRICT
 );
 
--- =====================
--- Tabelas de Categorias e Preferências
--- =====================
 
 CREATE TABLE IF NOT EXISTS Categoria (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -67,9 +54,7 @@ CREATE TABLE IF NOT EXISTS Preferencias (
     UNIQUE (usuario_id, categoria_id)
 );
 
--- =====================
--- Tabelas de Projetos/Campanhas
--- =====================
+
 
 CREATE TABLE IF NOT EXISTS Status_campanha (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -105,9 +90,7 @@ CREATE TABLE IF NOT EXISTS Info_campanha (
     FOREIGN KEY (projeto_id) REFERENCES Projeto(id) ON DELETE CASCADE
 );
 
--- =====================
--- Tabelas de Serviços
--- =====================
+
 
 CREATE TABLE IF NOT EXISTS Status_servico (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -125,9 +108,7 @@ CREATE TABLE IF NOT EXISTS Servicos_disponiveis (
     FOREIGN KEY (status_servico_id) REFERENCES Status_servico(id) ON DELETE RESTRICT
 );
 
--- =====================
--- Tabelas de Participações
--- =====================
+
 
 CREATE TABLE IF NOT EXISTS Status_participacao (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -147,9 +128,7 @@ CREATE TABLE IF NOT EXISTS Participacoes (
     FOREIGN KEY (status_participacao_id) REFERENCES Status_participacao(id) ON DELETE RESTRICT
 );
 
--- =====================
--- Tabelas de Avaliações e Favoritos
--- =====================
+
 
 CREATE TABLE IF NOT EXISTS Avaliacoes (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -171,9 +150,7 @@ CREATE TABLE IF NOT EXISTS Favoritos (
     FOREIGN KEY (projeto_id) REFERENCES Projeto(id) ON DELETE CASCADE
 );
 
--- =====================
--- Dados iniciais
--- =====================
+
 
 INSERT IGNORE INTO Tipo_usuario (id, nome) VALUES 
 (1, 'Admin'),
