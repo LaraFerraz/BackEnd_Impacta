@@ -7,6 +7,35 @@ const router = express.Router();
 const ITEMS_POR_PAGINA = 10;
 const ATRIBUTOS = ['id', 'nome', 'sigla', 'pais_id'];
 
+// ============================================
+// GET - Listar TODOS os estados (sem paginação)
+// ============================================
+router.get('/todos', async (req, res) => {
+  try {
+    const estados = await Estado.findAll({
+      attributes: ATRIBUTOS,
+      include: [
+        { model: Pais, as: 'pais', attributes: ['id', 'nome'] },
+        { model: Cidade, as: 'cidades', attributes: ['id', 'nome'] }
+      ],
+      order: [['nome', 'ASC']]
+    });
+
+    res.json({
+      success: true,
+      dados: estados,
+      total: estados.length
+    });
+  } catch (error) {
+    console.error('Erro ao listar estados:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao listar estados',
+      error: process.env.NODE_ENV === 'development' ? error.message : {}
+    });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const pagina = Math.max(1, parseInt(req.query.page) || 1);
@@ -27,6 +56,7 @@ router.get('/', async (req, res) => {
     const totalPaginas = Math.ceil(count / ITEMS_POR_PAGINA);
 
     res.json({
+      success: true,
       dados: rows,
       paginacao: { paginaAtual: pagina, totalPaginas, total: count }
     });
@@ -34,6 +64,7 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Erro ao listar estados:', error);
     res.status(500).json({
+      success: false,
       message: 'Erro ao listar estados',
       error: process.env.NODE_ENV === 'development' ? error.message : {}
     });

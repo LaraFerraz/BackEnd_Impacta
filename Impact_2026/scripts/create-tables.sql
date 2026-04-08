@@ -172,3 +172,17 @@ INSERT IGNORE INTO Status_participacao (id, nome) VALUES
 (2, 'Aprovada'),
 (3, 'Rejeitada'),
 (4, 'Cancelada');
+
+INSERT IGNORE INTO Categoria (id, nome) VALUES 
+(1, 'Educação'),
+(2, 'Saúde'),
+(3, 'Meio Ambiente'),
+(4, 'Alimentação'),
+(5, 'Habitação'),
+(6, 'Tecnologia'),
+(7, 'Trabalho Social'),
+(8, 'Assistência Social'),
+(9, 'Esportes'),
+(10, 'Cultura e Arte'),
+(11, 'Voluntariado'),
+(12, 'Infraestrutura');
