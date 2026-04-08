@@ -191,3 +191,6 @@ INSERT IGNORE INTO Cidade (id, nome, estado_id) VALUES
 -- Tocantins (TO)
 INSERT IGNORE INTO Cidade (id, nome, estado_id) VALUES
 (72, 'Palmas', 27);
+
+
+Hiago

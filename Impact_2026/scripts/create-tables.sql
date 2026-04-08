@@ -186,3 +186,4 @@ INSERT IGNORE INTO Categoria (id, nome) VALUES
 (10, 'Cultura e Arte'),
 (11, 'Voluntariado'),
 (12, 'Infraestrutura');
+

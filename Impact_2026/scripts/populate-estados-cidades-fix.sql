@@ -149,3 +149,7 @@ INSERT INTO Cidade (id, nome, estado_id) VALUES
 (70, 'Ribeirao Preto', 25),
 (71, 'Aracaju', 26),
 (72, 'Palmas', 27);
+
+
+
+hIAGO
