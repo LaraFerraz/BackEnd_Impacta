@@ -1,4 +1,5 @@
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { sequelize } = require('./models');
@@ -6,7 +7,7 @@ const { sequelize } = require('./models');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configuração de CORS para múltiplas origens
+// Configuração de CORS
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
@@ -35,10 +36,11 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Middleware de log para debug
+// Log
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
@@ -53,7 +55,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Routes
+// ROTAS (SEMPRE carregadas, inclusive nos testes)
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/paises', require('./routes/paisesRoutes'));
@@ -72,24 +74,24 @@ app.use('/api/servicos', require('./routes/servicosDisponiveisRoutes'));
 // Error handler
 app.use((err, req, res, next) => {
   console.error('Erro:', err.stack);
-  res.status(500).json({ 
+
+  res.status(500).json({
     message: 'Erro interno do servidor',
-    error: process.env.NODE_ENV === 'development' ? err.message : {}
+    error: err.message // 👈 aqui sim
   });
 });
 
-// 404 handler
+// 404
 app.use((req, res) => {
   res.status(404).json({ message: 'Rota não encontrada' });
 });
 
-// Inicializar servidor
+// 🚀 Inicialização do servidor (NÃO roda em teste)
 async function startServer() {
   try {
-    // Testar conexão com o banco
     await sequelize.authenticate();
     console.log('Conexão com o banco de dados estabelecida com sucesso.');
-    
+
     app.listen(PORT, () => {
       console.log(`Servidor rodando na porta ${PORT}`);
       console.log(`Health check: http://localhost:${PORT}/api/health`);
@@ -100,6 +102,9 @@ async function startServer() {
   }
 }
 
-startServer();
+//  evita rodar servidor no Jest
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 
 module.exports = app;
