@@ -7,7 +7,6 @@ const validarTelefone = (telefone) => {
   const telefoneRegex = /^[\d\s\-\(\)]{10,20}$/;
   return telefoneRegex.test(telefone.replace(/\s/g, ''));
 };
-
 const validarCPF = (cpf) => {
   const cpfLimpo = cpf.replace(/\D/g, '');
 
@@ -19,15 +18,22 @@ const validarCPF = (cpf) => {
   for (let i = 0; i < 9; i++) {
     soma += parseInt(cpfLimpo.charAt(i)) * (10 - i);
   }
-  const d1 = 11 - (soma % 11);
+
+  let d1 = 11 - (soma % 11);
+  if (d1 >= 10) d1 = 0;
 
   soma = 0;
   for (let i = 0; i < 10; i++) {
     soma += parseInt(cpfLimpo.charAt(i)) * (11 - i);
   }
-  const d2 = 11 - (soma % 11);
 
-  return d1 === parseInt(cpfLimpo.charAt(10)) && d2 === parseInt(cpfLimpo.charAt(11));
+  let d2 = 11 - (soma % 11);
+  if (d2 >= 10) d2 = 0;
+
+  return (
+    d1 === parseInt(cpfLimpo.charAt(9)) &&
+    d2 === parseInt(cpfLimpo.charAt(10))
+  );
 };
 
 const validarForcaSenha = (senha) => {

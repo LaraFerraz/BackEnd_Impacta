@@ -3,9 +3,6 @@ const { Favoritos, Usuario, Projeto } = require('../models');
 
 const router = express.Router();
 
-// ============================================
-// GET - Listar favoritos do usuário
-// ============================================
 router.get('/usuario/:usuario_id', async (req, res) => {
   try {
     const { usuario_id } = req.params;

@@ -3,11 +3,6 @@ const { Cidade, Estado } = require('../models');
 
 const router = express.Router();
 
-/**
- * ============================================
- * GET - Listar todas as cidades
- * ============================================
- */
 router.get('/', async (req, res) => {
   try {
     const cidades = await Cidade.findAll({
