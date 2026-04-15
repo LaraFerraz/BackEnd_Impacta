@@ -7,9 +7,6 @@ const router = express.Router();
 const ITEMS_POR_PAGINA = 10;
 const ATRIBUTOS = ['id', 'nome', 'sigla', 'pais_id'];
 
-// ============================================
-// GET - Listar TODOS os estados (sem paginação)
-// ============================================
 router.get('/todos', async (req, res) => {
   try {
     const estados = await Estado.findAll({
