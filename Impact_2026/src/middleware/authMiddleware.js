@@ -14,7 +14,7 @@ if (process.env.NODE_ENV === 'production' && !JWT_SECRET) {
 // Em desenvolvimento, avisar se usar valor padrão
 if (!JWT_SECRET && process.env.NODE_ENV !== 'production') {
   console.warn(
-    '⚠️  AVISO: JWT_SECRET não definida. Usando valor padrão (seguro apenas para desenvolvimento). ' +
+    ' AVISO: JWT_SECRET não definida. Usando valor padrão' +
     'Configure a variável JWT_SECRET no arquivo .env.'
   );
 }
@@ -43,10 +43,14 @@ const autenticar = (req, res, next) => {
 };
 
 const autorizarProprio = (req, res, next) => {
-  if (req.usuario.id !== parseInt(req.params.id)) {
+  const userId = req.usuario && req.usuario.id;
+  const paramId = req.params && req.params.id;
+
+  if (!userId || !paramId || userId != paramId) {
     return res.status(403).json({ message: 'Acesso negado' });
   }
-  next();
+
+  return next();
 };
 
 module.exports = {
