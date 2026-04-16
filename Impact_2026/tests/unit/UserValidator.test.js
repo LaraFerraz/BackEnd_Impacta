@@ -7,47 +7,47 @@ const {
 
 describe('Validação de Email', () => {
   test('válido', () => {
-    expect(validarEmail('user@email.com')).toBe(true);
+    expect(validarEmail('user@email.com').valido).toBe(true);
   });
 
   test('inválido - sem @', () => {
-    expect(validarEmail('useremail.com')).toBe(false);
+    expect(validarEmail('useremail.com').valido).toBe(false);
   });
 
   test('inválido - vazio', () => {
-    expect(validarEmail('')).toBe(false);
+    expect(validarEmail('').valido).toBe(false);
   });
 });
 
 describe('Validação de CPF', () => {
   test('válido com formatação', () => {
-    expect(validarCPF('123.456.789-09')).toBe(true);
+    expect(validarCPF('123.456.789-09').valido).toBe(true);
   });
 
   test('válido sem formatação', () => {
-    expect(validarCPF('12345678909')).toBe(true);
+    expect(validarCPF('12345678909').valido).toBe(true);
   });
 
   test('inválido - dígitos iguais', () => {
-    expect(validarCPF('111.111.111-11')).toBe(false);
+    expect(validarCPF('111.111.111-11').valido).toBe(false);
   });
 
   test('inválido - tamanho', () => {
-    expect(validarCPF('123.456')).toBe(false);
+    expect(validarCPF('123.456').valido).toBe(false);
   });
 });
 
 describe('Validação de Telefone', () => {
   test('válido', () => {
-    expect(validarTelefone('(11) 9999-9999')).toBe(true);
+    expect(validarTelefone('(11) 9999-9999').valido).toBe(true);
   });
 
   test('válido sem formatação', () => {
-    expect(validarTelefone('11999999999')).toBe(true);
+    expect(validarTelefone('11999999999').valido).toBe(true);
   });
 
   test('inválido - muito curto', () => {
-    expect(validarTelefone('1199')).toBe(false);
+    expect(validarTelefone('1199').valido).toBe(false);
   });
 });
 

@@ -6,7 +6,13 @@ const {
 } = require('../../../../shared/validators.js');
 
 // Adapters para usar a API centralizada (front-end usa { valid }, backend usa { valido })
-const validarEmail = validateEmail;
+const validarEmail = (email) => {
+  const result = validateEmail(email);
+  return {
+    valido: result.valid,
+    ...((!result.valid) && { message: result.message })
+  };
+};
 const validarTelefone = (telefone) => {
   const result = validatePhone(telefone);
   return {

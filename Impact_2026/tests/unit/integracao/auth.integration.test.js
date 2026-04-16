@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-jest.mock('../../../src/models', () => ({
+jest.mock('../../../src/middleware/models', () => ({
   Usuario: {
     findOne: jest.fn().mockResolvedValue(null),
     create: jest.fn().mockResolvedValue({ id: 1 }),
@@ -28,8 +28,9 @@ describe('Testes de Integração - Auth', () => {
       .post('/api/auth/register')
       .send({
         nome: 'Teste',
-        email: 'teste@email.com',
-        password: '123456',
+        email: `teste${Date.now()}@email.com`,
+        password: 'Test123!@',
+        cpf: '12345678909',
         telefone: '44999999999'
       });
 
