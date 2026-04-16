@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS Servicos_disponiveis (
     descricao TEXT,
     quantidade_necessaria INT,
     status_servico_id INT NOT NULL,
+    campanha_ativa BOOLEAN DEFAULT TRUE COMMENT 'Indica se a campanha do projeto ainda está ativa',
     FOREIGN KEY (projeto_id) REFERENCES Projeto(id) ON DELETE CASCADE,
     FOREIGN KEY (status_servico_id) REFERENCES Status_servico(id) ON DELETE RESTRICT
 );

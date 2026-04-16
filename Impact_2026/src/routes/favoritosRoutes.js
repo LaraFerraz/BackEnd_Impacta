@@ -1,5 +1,6 @@
 const express = require('express');
-const { Favoritos, Usuario, Projeto } = require('../models');
+const { Favoritos, Usuario, Projeto } = require('../middleware/models');
+const { autenticar } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -132,7 +133,7 @@ router.post('/', async (req, res) => {
 // ============================================
 // DELETE - Remover projeto dos favoritos
 // ============================================
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', autenticar, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -142,6 +143,14 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Favorito não encontrado'
+      });
+    }
+
+    // Verificar se o usuário é o proprietário do favorito
+    if (favorito.usuario_id !== req.usuario.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Você não tem permissão para remover este favorito'
       });
     }
 
@@ -164,7 +173,7 @@ router.delete('/:id', async (req, res) => {
 // ============================================
 // DELETE - Remover por usuario_id e projeto_id
 // ============================================
-router.delete('/usuario/:usuario_id/projeto/:projeto_id', async (req, res) => {
+router.delete('/usuario/:usuario_id/projeto/:projeto_id', autenticar, async (req, res) => {
   try {
     const { usuario_id, projeto_id } = req.params;
 
@@ -176,6 +185,14 @@ router.delete('/usuario/:usuario_id/projeto/:projeto_id', async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Favorito não encontrado'
+      });
+    }
+
+    // Verificar se o usuário é o proprietário do favorito
+    if (parseInt(usuario_id) !== req.usuario.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Você não tem permissão para remover este favorito'
       });
     }
 

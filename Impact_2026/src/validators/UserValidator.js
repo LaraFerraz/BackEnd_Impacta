@@ -1,51 +1,41 @@
-const validarEmail = (email) => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
+const {
+  validateEmail,
+  validateCPF,
+  validatePhone,
+  validatePasswordStrength
+} = require('../../../../shared/validators.js');
 
+// Adapters para usar a API centralizada (front-end usa { valid }, backend usa { valido })
+const validarEmail = validateEmail;
 const validarTelefone = (telefone) => {
-  const telefoneRegex = /^[\d\s\-\(\)]{10,20}$/;
-  return telefoneRegex.test(telefone.replace(/\s/g, ''));
+  const result = validatePhone(telefone);
+  return {
+    valido: result.valid,
+    ...((!result.valid) && {
+      detalhes: {
+        numDigitos: telefone.replace(/\D/g, '').length,
+        formatoEsperado: '(11) 9999-9999 ou 11999999999'
+      }
+    })
+  };
 };
 
 const validarCPF = (cpf) => {
-  const cpfLimpo = cpf.replace(/\D/g, '');
-
-  if (cpfLimpo.length !== 11 || /^(\d)\1{10}$/.test(cpfLimpo)) {
-    return false;
-  }
-
-  let soma = 0;
-  for (let i = 0; i < 9; i++) {
-    soma += parseInt(cpfLimpo.charAt(i)) * (10 - i);
-  }
-  const d1 = 11 - (soma % 11);
-
-  soma = 0;
-  for (let i = 0; i < 10; i++) {
-    soma += parseInt(cpfLimpo.charAt(i)) * (11 - i);
-  }
-  const d2 = 11 - (soma % 11);
-
-  return d1 === parseInt(cpfLimpo.charAt(10)) && d2 === parseInt(cpfLimpo.charAt(11));
+  const result = validateCPF(cpf);
+  return {
+    valido: result.valid,
+    ...((!result.valid) && { problema: result.message })
+  };
 };
 
 const validarForcaSenha = (senha) => {
-  const criterios = {
-    tamanho: senha.length >= 8,
-    maiuscula: /[A-Z]/.test(senha),
-    minuscula: /[a-z]/.test(senha),
-    numero: /\d/.test(senha),
-    especial: /[!@#$%^&*()_+\-=\[\]{};:'",.<>?/\\|`~]/.test(senha)
-  };
-
-  const criteriosAtingidos = Object.values(criterios).filter(Boolean).length;
-  let nivel = criteriosAtingidos >= 4 ? 'forte' : criteriosAtingidos >= 3 ? 'media' : 'fraca';
-
+  const result = validatePasswordStrength(senha);
   return {
-    valida: criteriosAtingidos >= 2 && senha.length >= 6,
-    nivel,
-    mensagem: `Senha ${nivel} (${criteriosAtingidos}/5 critérios)`
+    valida: result.valid,
+    nivel: result.strength,
+    mensagem: result.message,
+    faltando: result.missing,
+    detalhes: result.suggestion
   };
 };
 
@@ -60,49 +50,99 @@ const validarCadastro = (req, res, next) => {
 
   // Validar nome
   if (!nome || !nome.trim()) {
-    errors.push({ field: 'nome', message: 'Nome é obrigatório' });
+    errors.push({ 
+      field: 'nome', 
+      message: '❌ Nome é obrigatório',
+      problema: 'Campo vazio'
+    });
   } else if (nome.trim().length < 2) {
-    errors.push({ field: 'nome', message: 'Nome deve ter pelo menos 2 caracteres' });
+    errors.push({ 
+      field: 'nome', 
+      message: '❌ Nome muito curto',
+      problema: `Mínimo 2 caracteres (você digitou ${nome.trim().length})`
+    });
   } else if (nome.trim().length > 100) {
-    errors.push({ field: 'nome', message: 'Nome deve ter no máximo 100 caracteres' });
+    errors.push({ 
+      field: 'nome', 
+      message: '❌ Nome muito longo',
+      problema: `Máximo 100 caracteres (você digitou ${nome.trim().length})`
+    });
   }
 
   // Validar email
   if (!email || !email.trim()) {
-    errors.push({ field: 'email', message: 'Email é obrigatório' });
+    errors.push({ 
+      field: 'email', 
+      message: '❌ Email é obrigatório',
+      problema: 'Campo vazio'
+    });
   } else if (!validarEmail(email)) {
-    errors.push({ field: 'email', message: 'Email deve ser válido' });
+    errors.push({ 
+      field: 'email', 
+      message: '❌ Email inválido',
+      problema: `Formato esperado: seu.email@dominio.com.br`
+    });
   }
 
   // Validar CPF
   if (!cpf || !cpf.trim()) {
-    errors.push({ field: 'cpf', message: 'CPF é obrigatório' });
-  } else if (!validarCPF(cpf)) {
-    errors.push({ field: 'cpf', message: 'CPF inválido' });
+    errors.push({ 
+      field: 'cpf', 
+      message: '❌ CPF é obrigatório',
+      problema: 'Campo vazio'
+    });
+  } else {
+    const validacaoCPF = validarCPF(cpf);
+    if (!validacaoCPF.valido) {
+      errors.push({
+        field: 'cpf',
+        message: '❌ CPF inválido',
+        problema: validacaoCPF.problema
+      });
+    }
   }
 
   // Validar telefone
   if (!telefone || !telefone.trim()) {
-    errors.push({ field: 'telefone', message: 'Telefone é obrigatório' });
-  } else if (!validarTelefone(telefone)) {
-    errors.push({ field: 'telefone', message: 'Telefone deve ser válido' });
+    errors.push({ 
+      field: 'telefone', 
+      message: '❌ Telefone é obrigatório',
+      problema: 'Campo vazio'
+    });
+  } else {
+    const validacaoTelefone = validarTelefone(telefone);
+    if (!validacaoTelefone.valido) {
+      errors.push({ 
+        field: 'telefone', 
+        message: '❌ Telefone inválido',
+        problema: `Use o formato: (11) 9999-9999 ou 11999999999. Você digitou: ${telefone.trim()}`
+      });
+    }
   }
 
   // Validar senha com força
   if (!password || !password.trim()) {
-    errors.push({ field: 'password', message: 'Senha é obrigatória' });
+    errors.push({ 
+      field: 'password', 
+      message: '❌ Senha é obrigatória',
+      problema: 'Campo vazio'
+    });
   } else {
     const forcaSenha = validarForcaSenha(password);
     if (!forcaSenha.valida) {
       errors.push({
         field: 'password',
-        message: 'Senha fraca. Deve ter 6+ caracteres com letras, números e símbolos'
+        message: `❌ Senha ${forcaSenha.nivel}`,
+        problema: forcaSenha.detalhes || `Mínimo: 6 caracteres com números e letras`
       });
     }
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ message: 'Dados inválidos', errors });
+    return res.status(400).json({ 
+      message: 'Dados inválidos - Veja os problemas abaixo', 
+      errors 
+    });
   }
 
   next();
@@ -114,19 +154,31 @@ const validarLogin = (req, res, next) => {
 
   // Validar email
   if (!email || !email.trim()) {
-    errors.push({ field: 'email', message: 'Email é obrigatório' });
+    errors.push({ 
+      field: 'email', 
+      message: '❌ Email é obrigatório',
+      problema: 'Campo vazio'
+    });
   } else if (!validarEmail(email)) {
-    errors.push({ field: 'email', message: 'Email deve ser válido' });
+    errors.push({ 
+      field: 'email', 
+      message: '❌ Email inválido',
+      problema: 'Formato esperado: seu.email@dominio.com.br'
+    });
   }
 
   // Validar senha
   if (!password || !password.trim()) {
-    errors.push({ field: 'password', message: 'Senha é obrigatória' });
+    errors.push({ 
+      field: 'password', 
+      message: '❌ Senha é obrigatória',
+      problema: 'Campo vazio'
+    });
   }
 
   if (errors.length > 0) {
     return res.status(400).json({
-      message: 'Dados inválidos',
+      message: 'Preenchimento incorreto - Veja os problemas abaixo',
       errors
     });
   }
@@ -147,52 +199,91 @@ const validarAtualizacao = (req, res, next) => {
   if (req.body.email !== undefined) {
     errors.push({
       field: 'email',
-      message: 'Email não pode ser alterado'
+      message: '❌ Email não pode ser alterado',
+      problema: 'Por segurança, o email é imutável'
     });
   }
 
   // Validar nome (se fornecido)
   if (nome !== undefined) {
     if (!nome || !nome.trim()) {
-      errors.push({ field: 'nome', message: 'Nome não pode estar vazio' });
+      errors.push({ 
+        field: 'nome', 
+        message: '❌ Nome não pode estar vazio',
+        problema: 'O campo nome é obrigatório'
+      });
     } else if (nome.trim().length < 2) {
-      errors.push({ field: 'nome', message: 'Nome deve ter pelo menos 2 caracteres' });
+      errors.push({ 
+        field: 'nome', 
+        message: '❌ Nome muito curto',
+        problema: `Mínimo 2 caracteres (você digitou ${nome.trim().length})`
+      });
     } else if (nome.trim().length > 100) {
-      errors.push({ field: 'nome', message: 'Nome deve ter no máximo 100 caracteres' });
+      errors.push({ 
+        field: 'nome', 
+        message: '❌ Nome muito longo',
+        problema: `Máximo 100 caracteres (você digitou ${nome.trim().length})`
+      });
     }
   }
 
   // Validar telefone (se fornecido)
   if (telefone !== undefined) {
     if (!telefone || !telefone.trim()) {
-      errors.push({ field: 'telefone', message: 'Telefone não pode estar vazio' });
-    } else if (!validarTelefone(telefone)) {
-      errors.push({ field: 'telefone', message: 'Telefone deve ser válido' });
+      errors.push({ 
+        field: 'telefone', 
+        message: '❌ Telefone não pode estar vazio',
+        problema: 'O campo telefone é obrigatório'
+      });
+    } else {
+      const validacaoTelefone = validarTelefone(telefone);
+      if (!validacaoTelefone.valido) {
+        errors.push({ 
+          field: 'telefone', 
+          message: '❌ Telefone inválido',
+          problema: `Use o formato: (11) 9999-9999 ou 11999999999`
+        });
+      }
     }
   }
 
   // Validar CPF (se fornecido)
   if (cpf !== undefined) {
     if (!cpf || !cpf.trim()) {
-      errors.push({ field: 'cpf', message: 'CPF não pode estar vazio' });
-    } else if (!validarCPF(cpf)) {
-      errors.push({ field: 'cpf', message: 'CPF inválido' });
+      errors.push({ 
+        field: 'cpf', 
+        message: '❌ CPF não pode estar vazio',
+        problema: 'O campo CPF é obrigatório'
+      });
+    } else {
+      const validacaoCPF = validarCPF(cpf);
+      if (!validacaoCPF.valido) {
+        errors.push({
+          field: 'cpf',
+          message: '❌ CPF inválido',
+          problema: validacaoCPF.problema
+        });
+      }
     }
   }
 
-  // Validar senha (se fornecida)
-  if (password !== undefined && password.trim()) {
+  // Validar senha (se fornecida e não vazia)
+  if (password !== undefined && password && password.trim()) {
     const forcaSenha = validarForcaSenha(password);
     if (!forcaSenha.valida) {
       errors.push({
         field: 'password',
-        message: 'Senha fraca. Deve ter 6+ caracteres com letras, números e símbolos'
+        message: `❌ Senha ${forcaSenha.nivel}`,
+        problema: forcaSenha.detalhes || `Mínimo: 6 caracteres com números e letras`
       });
     }
   }
 
   if (errors.length > 0) {
-    return res.status(400).json({ message: 'Dados inválidos', errors });
+    return res.status(400).json({ 
+      message: 'Dados inválidos - Veja os problemas abaixo', 
+      errors 
+    });
   }
 
   next();

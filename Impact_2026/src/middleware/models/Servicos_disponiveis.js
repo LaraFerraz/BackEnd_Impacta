@@ -39,6 +39,12 @@ module.exports = (sequelize) => {
         model: 'Status_servico',
         key: 'id'
       }
+    },
+    campanha_ativa: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      comment: 'Indica se a campanha do projeto ainda está ativa'
     }
   }, {
     tableName: 'Servicos_disponiveis',

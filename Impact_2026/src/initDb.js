@@ -3,6 +3,8 @@
 const { execSync, spawn } = require('child_process');
 const net = require('net');
 const path = require('path');
+const mysql = require('mysql2/promise');
+const fs = require('fs');
 
 const MYSQL_PORT = 3306;
 const XAMPP_MYSQL_BIN = 'C:\\xampp\\mysql\\bin\\mysqld.exe';
@@ -81,14 +83,45 @@ async function waitForMySQL(maxAttempts = 40) {
 }
 
 /**
+ * Cria o banco de dados a partir do SQL
+ */
+async function createDatabaseFromSQL() {
+  try {
+    console.log('📊 Criando banco de dados...');
+    
+    const sqlFile = path.join(__dirname, '../scripts/init-impact-db.sql');
+    const sql = fs.readFileSync(sqlFile, 'utf8');
+    
+    // Conexão sem especificar banco de dados
+    const connection = await mysql.createConnection({
+      host: 'localhost',
+      user: 'root',
+      password: '',
+      port: 3306,
+      multipleStatements: true
+    });
+    
+    // Executar todo o SQL
+    await connection.query(sql);
+    await connection.end();
+    
+    console.log('✅ Banco de dados criado com sucesso');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro ao criar banco:', error.message);
+    return false;
+  }
+}
+
+/**
  * Sincroniza o banco de dados
  */
 async function syncDatabase() {
   try {
-    console.log('\n🔄 Verificando banco de dados...');
+    console.log('\n🔄 Sincronizando estrutura do banco...');
     require('dotenv').config();
     
-    const { sequelize } = require('./models');
+    const { sequelize } = require('./middleware/models');
     
     // Validar conexão
     await sequelize.authenticate();
@@ -96,6 +129,29 @@ async function syncDatabase() {
     
     return true;
   } catch (error) {
+    // Se erro é "Unknown database", tentar criar
+    if (error.message.includes('Unknown database')) {
+      console.log('⚠️  Banco "impact" não existe. Criando...');
+      const created = await createDatabaseFromSQL();
+      
+      if (!created) {
+        console.error('❌ Erro ao conectar ao banco:', error.message);
+        return false;
+      }
+      
+      // Tentar conectar novamente após criar
+      try {
+        require('dotenv').config();
+        const { sequelize: seq } = require('./middleware/models');
+        await seq.authenticate();
+        console.log('✅ Banco criado e sincronizado');
+        return true;
+      } catch (retryError) {
+        console.error('❌ Erro ao reconectar:', retryError.message);
+        return false;
+      }
+    }
+    
     console.error('❌ Erro ao conectar ao banco:', error.message);
     return false;
   }
@@ -133,7 +189,7 @@ async function main() {
       console.log('✅ MySQL já está rodando\n');
     }
     
-    // Sincronizar banco
+    // Sincronizar banco (criará se não existir)
     const synced = await syncDatabase();
     
     if (!synced) {
@@ -153,5 +209,5 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { isMySQLRunning, startMySQL, waitForMySQL, syncDatabase };
+module.exports = { isMySQLRunning, startMySQL, waitForMySQL, syncDatabase, createDatabaseFromSQL };
 

@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { Usuario, Cidade, TipoUsuario } = require('../models');
+const { Usuario, Cidade, TipoUsuario } = require('../middleware/models');
 const { validarAtualizacao } = require('../validators/UserValidator');
 const { autenticar, autorizarProprio } = require('../middleware/authMiddleware');
 
