@@ -7,10 +7,13 @@ const {
   StatusCampanha,
   Info_campanha,
   Servicos_disponiveis,
+  StatusServico,
   Participacoes,
+  StatusParticipacao,
   Avaliacoes,
   Favoritos
-} = require('../models');
+} = require('../middleware/models');
+const { autenticar } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -76,13 +79,13 @@ router.get('/:id', async (req, res) => {
         {
           model: Servicos_disponiveis,
           as: 'servicos',
-          include: [{ model: require('../models').StatusServico, as: 'status' }]
+          include: [{ model: StatusServico, as: 'status' }]
         },
         {
           model: Participacoes,
           as: 'participacoes',
           attributes: ['id', 'usuario_id', 'data_inscricao'],
-          include: [{ model: require('../models').StatusParticipacao, as: 'status' }],
+          include: [{ model: StatusParticipacao, as: 'status' }],
           separate: true
         },
         {
@@ -169,7 +172,7 @@ router.post('/', async (req, res) => {
 // ============================================
 // PUT - Atualizar projeto
 // ============================================
-router.put('/:id', async (req, res) => {
+router.put('/:id', autenticar, async (req, res) => {
   try {
     const { id } = req.params;
     const { titulo, descricao, categoria_id, cidade_id, data_inicio, data_fim, meta_participantes, status_id } = req.body;
@@ -183,6 +186,18 @@ router.put('/:id', async (req, res) => {
       });
     }
 
+    // Verificar se o usuário é o criador do projeto
+    if (projeto.criador_id !== req.usuario.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Você não tem permissão para editar este projeto'
+      });
+    }
+
+    // Verificar se o status_id é diferente (para sincronizar serviços)
+    const statusMudou = status_id && projeto.status_id !== status_id;
+    const statusAnterior = projeto.status_id;
+
     if (titulo) projeto.titulo = titulo;
     if (descricao) projeto.descricao = descricao;
     if (categoria_id) projeto.categoria_id = categoria_id;
@@ -194,6 +209,17 @@ router.put('/:id', async (req, res) => {
 
     await projeto.save();
 
+    // Se o status mudou, sincronizar os serviços disponíveis
+    let servicosSincronizados = 0;
+    if (statusMudou) {
+      const campanha_ativa = status_id === 1; // Status Ativa = 1
+      const [updated] = await Servicos_disponiveis.update(
+        { campanha_ativa },
+        { where: { projeto_id: id } }
+      );
+      servicosSincronizados = updated;
+    }
+
     const projetoAtualizado = await Projeto.findByPk(id, {
       include: [
         { model: Categoria, as: 'categoria', attributes: ['id', 'nome'] },
@@ -203,11 +229,23 @@ router.put('/:id', async (req, res) => {
       ]
     });
 
-    res.json({
+    const response = {
       success: true,
       message: 'Projeto atualizado com sucesso',
       data: projetoAtualizado
-    });
+    };
+
+    if (statusMudou) {
+      response.info = {
+        status_alterado: true,
+        status_anterior: statusAnterior,
+        status_novo: status_id,
+        servicos_sincronizados: servicosSincronizados,
+        campanha_ativa_agora: status_id === 1
+      };
+    }
+
+    res.json(response);
   } catch (error) {
     console.error('Erro ao atualizar projeto:', error);
     res.status(500).json({
@@ -221,7 +259,7 @@ router.put('/:id', async (req, res) => {
 // ============================================
 // DELETE - Deletar projeto
 // ============================================
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', autenticar, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -231,6 +269,14 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Projeto não encontrado'
+      });
+    }
+
+    // Verificar se o usuário é o criador do projeto
+    if (projeto.criador_id !== req.usuario.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Você não tem permissão para deletar este projeto'
       });
     }
 

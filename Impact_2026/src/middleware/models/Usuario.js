@@ -67,9 +67,14 @@ module.exports = (sequelize) => {
     },
     cpf: {
       type: DataTypes.STRING(14),
-      allowNull: true,
+      allowNull: false,
       unique: {
         msg: 'CPF já está em uso'
+      },
+      validate: {
+        notEmpty: {
+          msg: 'CPF é obrigatório'
+        }
       }
     },
     data_criacao: {

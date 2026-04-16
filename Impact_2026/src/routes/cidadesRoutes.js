@@ -1,5 +1,5 @@
 const express = require('express');
-const { Cidade, Estado } = require('../models');
+const { Cidade, Estado } = require('../middleware/models');
 
 const router = express.Router();
 

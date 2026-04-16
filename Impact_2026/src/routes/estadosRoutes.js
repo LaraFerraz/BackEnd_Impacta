@@ -1,5 +1,5 @@
 const express = require('express');
-const { Estado, Pais, Cidade } = require('../models');
+const { Estado, Pais, Cidade } = require('../middleware/models');
 const { autenticar } = require('../middleware/authMiddleware');
 
 const router = express.Router();

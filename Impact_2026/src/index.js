@@ -2,7 +2,8 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { sequelize } = require('./models');
+const { sequelize } = require('./middleware/models');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -71,15 +72,8 @@ app.use('/api/avaliacoes', require('./routes/avaliacoesRoutes'));
 app.use('/api/favoritos', require('./routes/favoritosRoutes'));
 app.use('/api/servicos', require('./routes/servicosDisponiveisRoutes'));
 
-// Error handler
-app.use((err, req, res, next) => {
-  console.error('Erro:', err.stack);
-
-  res.status(500).json({
-    message: 'Erro interno do servidor',
-    error: err.message // 👈 aqui sim
-  });
-});
+// Error handler centralizado
+app.use(errorHandler);
 
 // 404
 app.use((req, res) => {

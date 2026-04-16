@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { Usuario, Cidade, TipoUsuario } = require('../models');
+const { Usuario, Cidade, TipoUsuario } = require('../middleware/models');
 const { validarCadastro, validarLogin } = require('../validators/UserValidator');
 
 const router = express.Router();
@@ -34,33 +34,6 @@ const gerarToken = (user) => {
 const formatarUsuario = (user) => {
   const { senha, ...userData } = user.toJSON();
   return userData;
-};
-
-const gerarCPFValido = () => {
-  // Gera um CPF válido aleatório para quando o usuário não fornece
-  let cpf = '';
-  for (let i = 0; i < 9; i++) {
-    cpf += Math.floor(Math.random() * 10).toString();
-  }
-  
-  // Calcula primeiro dígito verificador
-  let sum = 0;
-  for (let i = 0; i < 9; i++) {
-    sum += parseInt(cpf.charAt(i)) * (10 - i);
-  }
-  let digit1 = 11 - (sum % 11);
-  digit1 = digit1 >= 10 ? 0 : digit1;
-  
-  // Calcula segundo dígito verificador
-  cpf += digit1.toString();
-  sum = 0;
-  for (let i = 0; i < 10; i++) {
-    sum += parseInt(cpf.charAt(i)) * (11 - i);
-  }
-  let digit2 = 11 - (sum % 11);
-  digit2 = digit2 >= 10 ? 0 : digit2;
-  
-  return cpf + digit2.toString();
 };
 
 const buscarCidadeId = async (nomeCidade) => {
@@ -101,17 +74,9 @@ const tratarErroRegistro = (error, res) => {
 };
 
 // POST /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', validarCadastro, async (req, res) => {
   try {
     const { nome, email, password, telefone, cidade, cpf } = req.body;
-
-    // Validar campos obrigatórios
-    if (!nome || !email || !password || !telefone) {
-      return res.status(400).json({
-        message: 'Nome, email, senha e telefone são obrigatórios',
-        field: 'form'
-      });
-    }
 
     // Verificar se email já existe
     const usuarioExistente = await Usuario.findOne({ where: { email } });
@@ -122,8 +87,16 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Usar CPF fornecido ou gerar um novo
-    const cpfFinal = cpf && cpf.trim() ? cpf.trim() : gerarCPFValido();
+    // Verificar se CPF já existe
+    const cpfExistente = await Usuario.findOne({ where: { cpf } });
+    if (cpfExistente) {
+      return res.status(409).json({
+        message: 'CPF já cadastrado',
+        field: 'cpf'
+      });
+    }
+
+    const cpfFinal = cpf && cpf.trim() ? cpf.trim() : null;
 
     const senhaHash = await bcrypt.hash(password, 10);
     const cidade_id = await buscarCidadeId(cidade);
