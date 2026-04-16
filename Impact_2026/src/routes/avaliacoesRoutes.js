@@ -3,9 +3,6 @@ const { Avaliacoes, Usuario, Projeto } = require('../middleware/models');
 
 const router = express.Router();
 
-// ============================================
-// GET - Listar avaliações com filtros
-// ============================================
 router.get('/', async (req, res) => {
   try {
     const { usuario_id, projeto_id, page = 1, limit = 10 } = req.query;

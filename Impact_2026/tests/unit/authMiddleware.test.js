@@ -1,8 +1,6 @@
 const { autenticar, autorizarProprio } = require('../../src/middleware/authMiddleware');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = 'impacta-secret-key-2026';
-
 const criarMockReq = (headers = {}) => ({
   headers,
   usuario: null
@@ -15,17 +13,25 @@ const criarMockRes = () => {
   return res;
 };
 
-const next = jest.fn();
-
 describe('Autenticação JWT', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  test('token válido passa', () => {
-    const token = jwt.sign({ id: 1, email: 'user@test.com' }, JWT_SECRET, { expiresIn: '7d' });
-    const req = criarMockReq({ authorization: `Bearer ${token}` });
-    const res = criarMockRes();
+  it('token válido passa', () => {
+    const token = jwt.sign(
+      { id: 1 },
+      'impacta-secret-key-2026-dev-only' // mesma do middleware
+    );
+
+    const req = {
+      headers: {
+        authorization: `Bearer ${token}`
+      }
+    };
+
+    const res = {};
+    const next = jest.fn();
 
     autenticar(req, res, next);
 
@@ -37,6 +43,7 @@ describe('Autenticação JWT', () => {
   test('token ausente retorna 401', () => {
     const req = criarMockReq({});
     const res = criarMockRes();
+    const next = jest.fn();
 
     autenticar(req, res, next);
 
@@ -47,6 +54,7 @@ describe('Autenticação JWT', () => {
   test('token inválido retorna 401', () => {
     const req = criarMockReq({ authorization: 'Bearer invalid.token' });
     const res = criarMockRes();
+    const next = jest.fn();
 
     autenticar(req, res, next);
 
@@ -55,11 +63,18 @@ describe('Autenticação JWT', () => {
 });
 
 describe('Autorização (Próprio Usuário)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test('mesmos IDs passa', () => {
-    const req = criarMockReq();
-    req.usuario = { id: 1 };
-    req.params = { id: '1' };
+    const req = {
+      usuario: { id: 1 },
+      params: { id: '1' }
+    };
+
     const res = criarMockRes();
+    const next = jest.fn();
 
     autorizarProprio(req, res, next);
 
@@ -67,10 +82,13 @@ describe('Autorização (Próprio Usuário)', () => {
   });
 
   test('IDs diferentes retorna 403', () => {
-    const req = criarMockReq();
-    req.usuario = { id: 1 };
-    req.params = { id: '2' };
+    const req = {
+      usuario: { id: 1 },
+      params: { id: '2' }
+    };
+
     const res = criarMockRes();
+    const next = jest.fn();
 
     autorizarProprio(req, res, next);
 

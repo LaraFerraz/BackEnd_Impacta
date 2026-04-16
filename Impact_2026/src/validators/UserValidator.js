@@ -19,7 +19,6 @@ const validarTelefone = (telefone) => {
     })
   };
 };
-
 const validarCPF = (cpf) => {
   const result = validateCPF(cpf);
   return {

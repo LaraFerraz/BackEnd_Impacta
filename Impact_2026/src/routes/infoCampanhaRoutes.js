@@ -3,9 +3,7 @@ const { Info_campanha, Projeto } = require('../middleware/models');
 
 const router = express.Router();
 
-// ============================================
-// GET - Listar informações de campanhas
-// ============================================
+
 router.get('/', async (req, res) => {
   try {
     const { projeto_id, page = 1, limit = 10 } = req.query;

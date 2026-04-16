@@ -4,9 +4,6 @@ const { autenticar } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// ============================================
-// GET - Listar favoritos do usuário
-// ============================================
 router.get('/usuario/:usuario_id', async (req, res) => {
   try {
     const { usuario_id } = req.params;

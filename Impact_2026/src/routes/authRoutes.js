@@ -6,7 +6,6 @@ const { validarCadastro, validarLogin } = require('../validators/UserValidator')
 
 const router = express.Router();
 
-// Configuração JWT com validação segura
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const DEFAULT_JWT_SECRET = 'impacta-secret-key-2026-dev-only';
@@ -15,7 +14,7 @@ const ACTUAL_JWT_SECRET = JWT_SECRET || DEFAULT_JWT_SECRET;
 // Avisar se usar valor padrão em desenvolvimento
 if (!JWT_SECRET && process.env.NODE_ENV !== 'production') {
   console.warn(
-    '⚠️  AVISO: JWT_SECRET não definida em authRoutes. Usando valor padrão (seguro apenas para desenvolvimento).'
+    'AVISO: JWT_SECRET não definida em authRoutes. Usando valor padrão (seguro apenas para desenvolvimento).'
   );
 }
 
