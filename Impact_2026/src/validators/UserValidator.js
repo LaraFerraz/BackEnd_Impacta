@@ -3,7 +3,7 @@ const {
   validateCPF,
   validatePhone,
   validatePasswordStrength
-} = require('../../../../shared/validators.js');
+} = require('../../shared/validators.js');
 
 // =========================================================================
 // Adapters de Validação (Tradução de Contrato Compartilhado -> API Backend)
