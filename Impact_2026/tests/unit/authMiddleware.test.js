@@ -96,3 +96,4 @@ describe('Autorização (Próprio Usuário)', () => {
     expect(next).not.toHaveBeenCalled();
   });
 });
+

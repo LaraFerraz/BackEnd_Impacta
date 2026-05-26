@@ -7,11 +7,12 @@ const router = express.Router();
 const ITEMS_POR_PAGINA = 10;
 const ATRIBUTOS = ['id', 'nome'];
 
-router.get('/', async (req, res) => {
+// GET /api/tipos-usuario - Listar tipos de usuário com paginação
+router.get('/', async (req, res, next) => {
   try {
-    const pagina = Math.max(1, parseInt(req.query.page) || 1);
+    const pagina = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = ITEMS_POR_PAGINA;
-    const offset = (pagina - 1) * ITEMS_POR_PAGINA;
+    const offset = (pagina - 1) * limit;
 
     const { count, rows } = await TipoUsuario.findAndCountAll({
       attributes: ATRIBUTOS,
@@ -28,23 +29,23 @@ router.get('/', async (req, res) => {
       offset
     });
 
-    const totalPaginas = Math.ceil(count / ITEMS_POR_PAGINA);
+    const totalPaginas = Math.ceil(count / limit);
 
-    res.json({
-      dados: rows,
-      paginacao: { paginaAtual: pagina, totalPaginas, total: count }
+    return res.json({
+      data: rows,
+      pagination: {
+        pagina_atual: pagina,
+        total_paginas: totalPaginas,
+        total: count
+      }
     });
-
   } catch (error) {
-    console.error('Erro ao listar tipos de usuário:', error);
-    res.status(500).json({
-      message: 'Erro ao listar tipos de usuário',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.get('/:id', async (req, res) => {
+// GET /api/tipos-usuario/:id - Buscar tipo de usuário detalhado por ID
+router.get('/:id', async (req, res, next) => {
   try {
     const tipo = await TipoUsuario.findByPk(req.params.id, {
       attributes: ATRIBUTOS,
@@ -59,137 +60,111 @@ router.get('/:id', async (req, res) => {
     });
 
     if (!tipo) {
-      return res.status(404).json({ message: 'Tipo de usuário não encontrado' });
+      return res.status(404).json({
+        message: 'Tipo de usuário não encontrado',
+        code: 'NOT_FOUND_ERROR'
+      });
     }
 
-    res.json(tipo);
-
+    return res.json({ data: tipo });
   } catch (error) {
-    console.error('Erro ao buscar tipo de usuário:', error);
-    res.status(500).json({
-      message: 'Erro ao buscar tipo de usuário',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.post('/', autenticar, async (req, res) => {
+// POST /api/tipos-usuario - Criar novo tipo de usuário
+router.post('/', autenticar, async (req, res, next) => {
   try {
     const { nome } = req.body;
 
     if (!nome || !nome.trim()) {
       return res.status(400).json({
-        message: 'Nome do tipo é obrigatório',
-        field: 'nome'
+        message: 'Dados inválidos',
+        code: 'VALIDATION_ERROR',
+        errors: [{ message: 'Nome do tipo é obrigatório', field: 'nome' }]
       });
     }
 
-    const tipoExistente = await TipoUsuario.findOne({
-      where: { nome: nome.trim() }
-    });
-
-    if (tipoExistente) {
-      return res.status(409).json({
-        message: 'Tipo de usuário já existe',
-        field: 'nome'
-      });
-    }
-
+    // Criamos diretamente. O índice UNIQUE da coluna 'nome' no banco de dados 
+    // será pego automaticamente pelo seu errorHandler global (disparando um 409 Conflict)
     const novoTipo = await TipoUsuario.create({
       nome: nome.trim()
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: 'Tipo de usuário criado com sucesso',
       data: novoTipo
     });
-
   } catch (error) {
-    console.error('Erro ao criar tipo de usuário:', error);
-    res.status(500).json({
-      message: 'Erro ao criar tipo de usuário',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.put('/:id', autenticar, async (req, res) => {
+// PUT /api/tipos-usuario/:id - Atualizar nome de um tipo de usuário
+router.put('/:id', autenticar, async (req, res, next) => {
   try {
+    const { id } = req.params;
     const { nome } = req.body;
 
     if (!nome || !nome.trim()) {
       return res.status(400).json({
-        message: 'Nome do tipo é obrigatório',
-        field: 'nome'
+        message: 'Dados inválidos',
+        code: 'VALIDATION_ERROR',
+        errors: [{ message: 'Nome do tipo é obrigatório', field: 'nome' }]
       });
     }
 
-    const tipo = await TipoUsuario.findByPk(req.params.id);
+    const tipo = await TipoUsuario.findByPk(id);
 
     if (!tipo) {
-      return res.status(404).json({ message: 'Tipo de usuário não encontrado' });
-    }
-
-    // Verifica se novo nome já existe
-    if (nome.trim() !== tipo.nome) {
-      const tipoExistente = await TipoUsuario.findOne({
-        where: { nome: nome.trim() }
+      return res.status(404).json({
+        message: 'Tipo de usuário não encontrado',
+        code: 'NOT_FOUND_ERROR'
       });
-
-      if (tipoExistente) {
-        return res.status(409).json({
-          message: 'Tipo de usuário já existe',
-          field: 'nome'
-        });
-      }
     }
 
+    // Atualiza o nome. Se violar a restrição UNIQUE, o erro flui nativamente para o interceptador
     await tipo.update({ nome: nome.trim() });
 
-    res.json({
+    return res.json({
       message: 'Tipo de usuário atualizado com sucesso',
       data: tipo
     });
-
   } catch (error) {
-    console.error('Erro ao atualizar tipo de usuário:', error);
-    res.status(500).json({
-      message: 'Erro ao atualizar tipo de usuário',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.delete('/:id', autenticar, async (req, res) => {
+// DELETE /api/tipos-usuario/:id - Remover tipo de usuário (Se não houver vínculos ativos)
+router.delete('/:id', autenticar, async (req, res, next) => {
   try {
-    const tipo = await TipoUsuario.findByPk(req.params.id);
+    const { id } = req.params;
+    const tipo = await TipoUsuario.findByPk(id);
 
     if (!tipo) {
-      return res.status(404).json({ message: 'Tipo de usuário não encontrado' });
+      return res.status(404).json({
+        message: 'Tipo de usuário não encontrado',
+        code: 'NOT_FOUND_ERROR'
+      });
     }
 
-    // Verifica se há usuários associados
+    // Validação de integridade referencial manual (Evita quebra lógica antes do DB barrar)
     const usuariosCount = await Usuario.count({
-      where: { tipo_usuario_id: req.params.id }
+      where: { tipo_usuario_id: id }
     });
 
     if (usuariosCount > 0) {
       return res.status(409).json({
-        message: 'Não é possível deletar tipo com usuários associados',
-        usuariosCount
+        message: 'Conflito de integridade',
+        code: 'CONFLICT_ERROR',
+        errors: [{ message: 'Não é possível deletar um tipo que possui usuários associados', usuarios_vinculados: usuariosCount }]
       });
     }
 
     await tipo.destroy();
-
-    res.json({ message: 'Tipo de usuário deletado com sucesso' });
-
+    return res.json({ message: 'Tipo de usuário deletado com sucesso' });
   } catch (error) {
-    console.error('Erro ao deletar tipo de usuário:', error);
-    res.status(500).json({
-      message: 'Erro ao deletar tipo de usuário',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 

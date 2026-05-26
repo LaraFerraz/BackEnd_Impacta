@@ -39,6 +39,7 @@ module.exports = (sequelize) => {
       foreignKey: 'usuario_id',
       as: 'usuario'
     });
+
     Preferencias.belongsTo(models.Categoria, {
       foreignKey: 'categoria_id',
       as: 'categoria'

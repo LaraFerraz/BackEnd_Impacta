@@ -3,7 +3,8 @@ const { Cidade, Estado } = require('../middleware/models');
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+// GET /api/cidades - Listar todas as cidades
+router.get('/', async (req, res, next) => {
   try {
     const cidades = await Cidade.findAll({
       attributes: ['id', 'nome', 'estado_id'],
@@ -17,27 +18,17 @@ router.get('/', async (req, res) => {
       order: [['nome', 'ASC']]
     });
 
-    res.json({
-      success: true,
+    return res.json({
       data: cidades,
       total: cidades.length
     });
   } catch (error) {
-    console.error('Erro ao listar cidades:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao listar cidades',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-/**
- * ============================================
- * GET - Buscar cidade por ID
- * ============================================
- */
-router.get('/:id', async (req, res) => {
+// GET /api/cidades/:id - Buscar cidade por ID
+router.get('/:id', async (req, res, next) => {
   try {
     const cidade = await Cidade.findByPk(req.params.id, {
       attributes: ['id', 'nome', 'estado_id'],
@@ -52,31 +43,19 @@ router.get('/:id', async (req, res) => {
 
     if (!cidade) {
       return res.status(404).json({
-        success: false,
-        message: 'Cidade não encontrada'
+        message: 'Cidade não encontrada',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
-    res.json({
-      success: true,
-      data: cidade
-    });
+    return res.json({ data: cidade });
   } catch (error) {
-    console.error('Erro ao buscar cidade:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar cidade',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-/**
- * ============================================
- * GET - Listar cidades por estado
- * ============================================
- */
-router.get('/estado/:estadoId', async (req, res) => {
+// GET /api/cidades/estado/:estadoId - Listar cidades por estado
+router.get('/estado/:estadoId', async (req, res, next) => {
   try {
     const { estadoId } = req.params;
 
@@ -86,72 +65,46 @@ router.get('/estado/:estadoId', async (req, res) => {
       order: [['nome', 'ASC']]
     });
 
-    res.json({
-      success: true,
+    return res.json({
       data: cidades,
       total: cidades.length
     });
   } catch (error) {
-    console.error('Erro ao listar cidades por estado:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao listar cidades por estado',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-/**
- * ============================================
- * POST - Criar nova cidade
- * ============================================
- */
-router.post('/', async (req, res) => {
+// POST /api/cidades - Criar nova cidade
+router.post('/', async (req, res, next) => {
   try {
     const { nome, estado_id } = req.body;
 
-    if (!nome || !estado_id) {
+    if (!nome?.trim() || !estado_id) {
       return res.status(400).json({
-        success: false,
-        message: 'Nome e estado_id são obrigatórios'
+        message: 'Dados inválidos',
+        code: 'VALIDATION_ERROR',
+        errors: [{ message: 'Nome e estado_id são obrigatórios' }]
       });
     }
 
-    // Verificar se estado existe
-    const estado = await Estado.findByPk(estado_id);
-    if (!estado) {
-      return res.status(404).json({
-        success: false,
-        message: 'Estado não encontrado'
-      });
-    }
-
+    // Criamos o registro diretamente. Se o estado_id não existir, o banco de dados
+    // rejeitará e o Error Handler enviará um FOREIGN_KEY_CONSTRAINT_ERROR automático.
     const cidade = await Cidade.create({
-      nome,
+      nome: nome.trim(),
       estado_id
     });
 
-    res.status(201).json({
-      success: true,
+    return res.status(201).json({
       message: 'Cidade criada com sucesso',
       data: cidade
     });
   } catch (error) {
-    console.error('Erro ao criar cidade:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao criar cidade',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-/**
- * ============================================
- * PUT - Atualizar cidade
- * ============================================
- */
-router.put('/:id', async (req, res) => {
+// PUT /api/cidades/:id - Atualizar cidade
+router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { nome, estado_id } = req.body;
@@ -159,72 +112,44 @@ router.put('/:id', async (req, res) => {
     const cidade = await Cidade.findByPk(id);
     if (!cidade) {
       return res.status(404).json({
-        success: false,
-        message: 'Cidade não encontrada'
+        message: 'Cidade não encontrada',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
-    // Se estado_id foi fornecido, validar
-    if (estado_id) {
-      const estado = await Estado.findByPk(estado_id);
-      if (!estado) {
-        return res.status(404).json({
-          success: false,
-          message: 'Estado não encontrado'
-        });
-      }
-    }
-
+    // Atualiza apenas os campos enviados, limpando espaços se o nome foi fornecido
     await cidade.update({
-      nome: nome || cidade.nome,
+      nome: nome !== undefined ? nome.trim() : cidade.nome,
       estado_id: estado_id || cidade.estado_id
     });
 
-    res.json({
-      success: true,
+    return res.json({
       message: 'Cidade atualizada com sucesso',
       data: cidade
     });
   } catch (error) {
-    console.error('Erro ao atualizar cidade:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao atualizar cidade',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-/**
- * ============================================
- * DELETE - Deletar cidade
- * ============================================
- */
-router.delete('/:id', async (req, res) => {
+// DELETE /api/cidades/:id - Deletar cidade
+router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const cidade = await Cidade.findByPk(id);
     if (!cidade) {
       return res.status(404).json({
-        success: false,
-        message: 'Cidade não encontrada'
+        message: 'Cidade não encontrada',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
     await cidade.destroy();
 
-    res.json({
-      success: true,
-      message: 'Cidade deletada com sucesso'
-    });
+    return res.json({ message: 'Cidade deletada com sucesso' });
   } catch (error) {
-    console.error('Erro ao deletar cidade:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao deletar cidade',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 

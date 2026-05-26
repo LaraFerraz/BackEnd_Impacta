@@ -11,33 +11,23 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(150),
       allowNull: false,
       validate: {
-        notEmpty: {
-          msg: 'Nome é obrigatório'
-        }
+        notEmpty: { msg: 'Nome é obrigatório' }
       }
     },
     email: {
       type: DataTypes.STRING(150),
       allowNull: false,
-      unique: {
-        msg: 'Email já está em uso'
-      },
+      unique: { msg: 'Email já está em uso' },
       validate: {
-        isEmail: {
-          msg: 'Email deve ser válido'
-        },
-        notEmpty: {
-          msg: 'Email é obrigatório'
-        }
+        isEmail: { msg: 'Email deve ser válido' },
+        notEmpty: { msg: 'Email é obrigatório' }
       }
     },
     senha: {
       type: DataTypes.STRING(255),
       allowNull: false,
       validate: {
-        notEmpty: {
-          msg: 'Senha é obrigatória'
-        },
+        notEmpty: { msg: 'Senha é obrigatória' },
         len: {
           args: [6, 255],
           msg: 'Senha deve ter pelo menos 6 caracteres'
@@ -68,13 +58,9 @@ module.exports = (sequelize) => {
     cpf: {
       type: DataTypes.STRING(14),
       allowNull: false,
-      unique: {
-        msg: 'CPF já está em uso'
-      },
+      unique: { msg: 'CPF já está em uso' },
       validate: {
-        notEmpty: {
-          msg: 'CPF é obrigatório'
-        }
+        notEmpty: { msg: 'CPF é obrigatório' }
       }
     },
     data_criacao: {
@@ -87,13 +73,12 @@ module.exports = (sequelize) => {
     timestamps: false
   });
 
-  // Associações
   Usuario.associate = (models) => {
     Usuario.belongsTo(models.Cidade, {
       foreignKey: 'cidade_id',
       as: 'cidade'
     });
-    
+
     Usuario.belongsTo(models.TipoUsuario, {
       foreignKey: 'tipo_usuario_id',
       as: 'tipo'

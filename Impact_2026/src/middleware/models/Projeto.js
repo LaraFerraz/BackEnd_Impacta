@@ -11,18 +11,14 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(150),
       allowNull: false,
       validate: {
-        notEmpty: {
-          msg: 'Título é obrigatório'
-        }
+        notEmpty: { msg: 'Título é obrigatório' }
       }
     },
     descricao: {
       type: DataTypes.TEXT,
       allowNull: false,
       validate: {
-        notEmpty: {
-          msg: 'Descrição é obrigatória'
-        }
+        notEmpty: { msg: 'Descrição é obrigatória' }
       }
     },
     categoria_id: {
@@ -84,34 +80,42 @@ module.exports = (sequelize) => {
       foreignKey: 'categoria_id',
       as: 'categoria'
     });
+
     Projeto.belongsTo(models.Usuario, {
       foreignKey: 'criador_id',
       as: 'criador'
     });
+
     Projeto.belongsTo(models.Cidade, {
       foreignKey: 'cidade_id',
       as: 'cidade'
     });
+
     Projeto.belongsTo(models.StatusCampanha, {
       foreignKey: 'status_id',
       as: 'status'
     });
+
     Projeto.hasOne(models.Info_campanha, {
       foreignKey: 'projeto_id',
       as: 'informacoes'
     });
+
     Projeto.hasMany(models.Servicos_disponiveis, {
       foreignKey: 'projeto_id',
       as: 'servicos'
     });
+
     Projeto.hasMany(models.Participacoes, {
       foreignKey: 'projeto_id',
       as: 'participacoes'
     });
+
     Projeto.hasMany(models.Avaliacoes, {
       foreignKey: 'projeto_id',
       as: 'avaliacoes'
     });
+
     Projeto.hasMany(models.Favoritos, {
       foreignKey: 'projeto_id',
       as: 'favoritados_por'

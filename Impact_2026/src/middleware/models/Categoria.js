@@ -12,9 +12,7 @@ module.exports = (sequelize) => {
       allowNull: false,
       unique: true,
       validate: {
-        notEmpty: {
-          msg: 'Nome é obrigatório'
-        }
+        notEmpty: { msg: 'Nome é obrigatório' }
       }
     }
   }, {
@@ -27,6 +25,7 @@ module.exports = (sequelize) => {
       foreignKey: 'categoria_id',
       as: 'projetos'
     });
+
     Categoria.hasMany(models.Preferencias, {
       foreignKey: 'categoria_id',
       as: 'preferencias'

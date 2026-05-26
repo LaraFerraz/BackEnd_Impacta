@@ -7,10 +7,10 @@ const router = express.Router();
 const ITEMS_POR_PAGINA = 10;
 const ATRIBUTOS = ['id', 'nome'];
 
-router.get('/', async (req, res) => {
+// GET /api/paises - Listar países com paginação
+router.get('/', async (req, res, next) => {
   try {
-    const pagina = Math.max(1, parseInt(req.query.page) || 1);
-    const limit = ITEMS_POR_PAGINA;
+    const pagina = Math.max(1, parseInt(req.query.page, 10) || 1);
     const offset = (pagina - 1) * ITEMS_POR_PAGINA;
 
     const { count, rows } = await Pais.findAndCountAll({
@@ -23,27 +23,25 @@ router.get('/', async (req, res) => {
         }
       ],
       order: [['nome', 'ASC']],
-      limit,
+      limit: ITEMS_POR_PAGINA,
       offset
     });
 
-    const totalPaginas = Math.ceil(count / ITEMS_POR_PAGINA);
-
-    res.json({
-      dados: rows,
-      paginacao: { paginaAtual: pagina, totalPaginas, total: count }
+    return res.json({
+      data: rows,
+      pagination: {
+        pagina_atual: pagina,
+        total_paginas: Math.ceil(count / ITEMS_POR_PAGINA),
+        total: count
+      }
     });
-
   } catch (error) {
-    console.error('Erro ao listar países:', error);
-    res.status(500).json({
-      message: 'Erro ao listar países',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.get('/:id', async (req, res) => {
+// GET /api/paises/:id - Buscar país por ID
+router.get('/:id', async (req, res, next) => {
   try {
     const pais = await Pais.findByPk(req.params.id, {
       attributes: ATRIBUTOS,
@@ -57,136 +55,109 @@ router.get('/:id', async (req, res) => {
     });
 
     if (!pais) {
-      return res.status(404).json({ message: 'País não encontrado' });
+      return res.status(404).json({
+        message: 'País não encontrado',
+        code: 'NOT_FOUND_ERROR'
+      });
     }
 
-    res.json(pais);
-
+    return res.json({ data: pais });
   } catch (error) {
-    console.error('Erro ao buscar país:', error);
-    res.status(500).json({
-      message: 'Erro ao buscar país',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.post('/', autenticar, async (req, res) => {
+// POST /api/paises - Criar novo país
+router.post('/', autenticar, async (req, res, next) => {
   try {
     const { nome } = req.body;
 
     if (!nome || !nome.trim()) {
       return res.status(400).json({
-        message: 'Nome do país é obrigatório',
-        field: 'nome'
+        message: 'Dados inválidos',
+        code: 'VALIDATION_ERROR',
+        errors: [{ field: 'nome', message: 'Nome do país é obrigatório' }]
       });
     }
 
-    const paisExistente = await Pais.findOne({
-      where: { nome: nome.trim() }
-    });
-
-    if (paisExistente) {
-      return res.status(409).json({
-        message: 'País já existe',
-        field: 'nome'
-      });
-    }
-
+    // Criação direta. Se o nome violar o índice UNIQUE no banco,
+    // o errorHandler global responderá com status 409 e o código adequado.
     const novoPais = await Pais.create({
       nome: nome.trim()
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       message: 'País criado com sucesso',
       data: novoPais
     });
-
   } catch (error) {
-    console.error('Erro ao criar país:', error);
-    res.status(500).json({
-      message: 'Erro ao criar país',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.put('/:id', autenticar, async (req, res) => {
+// PUT /api/paises/:id - Atualizar país
+router.put('/:id', autenticar, async (req, res, next) => {
   try {
     const { nome } = req.body;
 
     if (!nome || !nome.trim()) {
       return res.status(400).json({
-        message: 'Nome do país é obrigatório',
-        field: 'nome'
+        message: 'Dados inválidos',
+        code: 'VALIDATION_ERROR',
+        errors: [{ field: 'nome', message: 'Nome do país é obrigatório' }]
       });
     }
 
     const pais = await Pais.findByPk(req.params.id);
 
     if (!pais) {
-      return res.status(404).json({ message: 'País não encontrado' });
-    }
-
-    // Verifica se novo nome já existe
-    if (nome.trim() !== pais.nome) {
-      const paisExistente = await Pais.findOne({
-        where: { nome: nome.trim() }
+      return res.status(404).json({
+        message: 'País não encontrado',
+        code: 'NOT_FOUND_ERROR'
       });
-
-      if (paisExistente) {
-        return res.status(409).json({
-          message: 'País já existe',
-          field: 'nome'
-        });
-      }
     }
 
     await pais.update({ nome: nome.trim() });
 
-    res.json({
+    return res.json({
       message: 'País atualizado com sucesso',
       data: pais
     });
-
   } catch (error) {
-    console.error('Erro ao atualizar país:', error);
-    res.status(500).json({
-      message: 'Erro ao atualizar país',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.delete('/:id', autenticar, async (req, res) => {
+// DELETE /api/paises/:id - Deletar país
+router.delete('/:id', autenticar, async (req, res, next) => {
   try {
     const pais = await Pais.findByPk(req.params.id);
 
     if (!pais) {
-      return res.status(404).json({ message: 'País não encontrado' });
+      return res.status(404).json({
+        message: 'País não encontrado',
+        code: 'NOT_FOUND_ERROR'
+      });
     }
 
-    // Verifica se há estados associados
+    // Mantido o bloqueio preventivo antes da query de exclusão
     const estadosCount = await Estado.count({
       where: { pais_id: req.params.id }
     });
 
     if (estadosCount > 0) {
       return res.status(409).json({
-        message: 'Não é possível deletar país com estados associados'
+        message: 'Conflito de integridade',
+        code: 'FOREIGN_KEY_CONSTRAINT_ERROR',
+        errors: [{ message: 'Não é possível deletar um país com estados associados' }]
       });
     }
 
     await pais.destroy();
 
-    res.json({ message: 'País deletado com sucesso' });
-
+    return res.json({ message: 'País deletado com sucesso' });
   } catch (error) {
-    console.error('Erro ao deletar país:', error);
-    res.status(500).json({
-      message: 'Erro ao deletar país',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 

@@ -19,9 +19,7 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(150),
       allowNull: false,
       validate: {
-        notEmpty: {
-          msg: 'Nome do serviço é obrigatório'
-        }
+        notEmpty: { msg: 'Nome do serviço é obrigatório' }
       }
     },
     descricao: {
@@ -56,10 +54,12 @@ module.exports = (sequelize) => {
       foreignKey: 'projeto_id',
       as: 'projeto'
     });
+
     Servicos_disponiveis.belongsTo(models.StatusServico, {
       foreignKey: 'status_servico_id',
       as: 'status'
     });
+
     Servicos_disponiveis.hasMany(models.Participacoes, {
       foreignKey: 'servico_id',
       as: 'participacoes'

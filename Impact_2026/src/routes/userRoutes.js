@@ -11,138 +11,150 @@ const ATRIB_PUBLICOS = ['id', 'nome', 'email', 'telefone', 'data_criacao'];
 const ATRIB_COMPLETOS = ['id', 'nome', 'email', 'cpf', 'telefone', 'data_criacao'];
 
 const extrairPaginacao = (pagina) => {
-  const pp = Math.max(1, parseInt(pagina) || 1);
-  return { limit: ITEMS_POR_PAGINA, offset: (pp - 1) * ITEMS_POR_PAGINA };
+  const parsedPage = Math.max(1, parseInt(pagina, 10) || 1);
+  return { 
+    limit: ITEMS_POR_PAGINA, 
+    offset: (parsedPage - 1) * ITEMS_POR_PAGINA,
+    page: parsedPage 
+  };
 };
 
-router.get('/', async (req, res) => {
+// GET /api/usuarios - Listar usuários de forma resumida (Público)
+router.get('/', async (req, res, next) => {
   try {
     const paginacao = extrairPaginacao(req.query.page);
 
     const { count, rows } = await Usuario.findAndCountAll({
       attributes: ATRIB_PUBLICOS,
       include: [
-        { model: Cidade, as: 'cidade', attributes: ['nome'] },
-        { model: TipoUsuario, as: 'tipo', attributes: ['nome'] }
+        { model: Cidade, as: 'cidade', attributes: ['id', 'nome'] },
+        { model: TipoUsuario, as: 'tipo', attributes: ['id', 'nome'] }
       ],
       order: [['data_criacao', 'DESC']],
-      ...paginacao
+      limit: paginacao.limit,
+      offset: paginacao.offset
     });
 
     const totalPaginas = Math.ceil(count / ITEMS_POR_PAGINA);
-    const paginaAtual = Math.floor(paginacao.offset / ITEMS_POR_PAGINA) + 1;
 
-    res.json({
-      dados: rows,
-      paginacao: { paginaAtual, totalPaginas, total: count }
+    return res.json({
+      data: rows,
+      pagination: {
+        pagina_atual: paginacao.page,
+        total_paginas: totalPaginas,
+        total: count
+      }
     });
-
   } catch (error) {
-    console.error('Erro ao listar usuários:', error);
-    res.status(500).json({
-      message: 'Erro ao listar usuários',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.get('/:id', async (req, res) => {
+// GET /api/usuarios/:id - Buscar dados públicos de um usuário específico
+router.get('/:id', async (req, res, next) => {
   try {
     const usuario = await Usuario.findByPk(req.params.id, {
       attributes: ATRIB_PUBLICOS,
       include: [
-        { model: Cidade, as: 'cidade', attributes: ['nome'] },
-        { model: TipoUsuario, as: 'tipo', attributes: ['nome'] }
+        { model: Cidade, as: 'cidade', attributes: ['id', 'nome'] },
+        { model: TipoUsuario, as: 'tipo', attributes: ['id', 'nome'] }
       ]
     });
 
     if (!usuario) {
-      return res.status(404).json({ message: 'Usuário não encontrado' });
+      return res.status(404).json({
+        message: 'Usuário não encontrado',
+        code: 'NOT_FOUND_ERROR'
+      });
     }
 
-    res.json(usuario);
-
+    return res.json({ data: usuario });
   } catch (error) {
-    console.error('Erro ao buscar usuário:', error);
-    res.status(500).json({
-      message: 'Erro ao buscar usuário',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.get('/:id/profile', autenticar, autorizarProprio, async (req, res) => {
+// GET /api/usuarios/:id/profile - Buscar dados privados e completos do perfil do próprio usuário
+router.get('/:id/profile', autenticar, autorizarProprio, async (req, res, next) => {
   try {
     const usuario = await Usuario.findByPk(req.params.id, {
       attributes: ATRIB_COMPLETOS,
       include: [
-        { model: Cidade, as: 'cidade', attributes: ['nome'] },
-        { model: TipoUsuario, as: 'tipo', attributes: ['nome'] }
+        { model: Cidade, as: 'cidade', attributes: ['id', 'nome'] },
+        { model: TipoUsuario, as: 'tipo', attributes: ['id', 'nome'] }
       ]
     });
 
     if (!usuario) {
-      return res.status(404).json({ message: 'Usuário não encontrado' });
+      return res.status(404).json({
+        message: 'Usuário não encontrado',
+        code: 'NOT_FOUND_ERROR'
+      });
     }
 
-    res.json(usuario);
-
+    return res.json({ data: usuario });
   } catch (error) {
-    console.error('Erro ao buscar perfil:', error);
-    res.status(500).json({
-      message: 'Erro ao buscar perfil',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-router.put('/:id', autenticar, autorizarProprio, validarAtualizacao, async (req, res) => {
+// PUT /api/usuarios/:id - Atualizar dados cadastrais (Dono da conta)
+router.put('/:id', autenticar, autorizarProprio, validarAtualizacao, async (req, res, next) => {
   try {
-    const usuario = await Usuario.findByPk(req.params.id);
+    const { id } = req.params;
+    const usuario = await Usuario.findByPk(id);
 
     if (!usuario) {
-      return res.status(404).json({ message: 'Usuário não encontrado' });
+      return res.status(404).json({
+        message: 'Usuário não encontrado',
+        code: 'NOT_FOUND_ERROR'
+      });
     }
 
+    // Executa as mutações higienizadas no modelo
     await atualizarDadosUsuario(usuario, req.body);
-    const usuarioAtualizado = await Usuario.findByPk(req.params.id, {
+
+    const usuarioAtualizado = await Usuario.findByPk(id, {
       attributes: ATRIB_COMPLETOS,
       include: [
-        { model: Cidade, as: 'cidade' },
-        { model: TipoUsuario, as: 'tipo' }
+        { model: Cidade, as: 'cidade', attributes: ['id', 'nome'] },
+        { model: TipoUsuario, as: 'tipo', attributes: ['id', 'nome'] }
       ]
     });
 
-    res.json({
+    return res.json({
       message: 'Perfil atualizado com sucesso',
-      user: usuarioAtualizado
+      data: usuarioAtualizado
     });
-
   } catch (error) {
-    tratarErroAtualizacao(error, res);
+    return next(error); // Erros de validação e UniqueConstraint do Sequelize caem aqui e são interceptados pelo errorHandler global
   }
 });
 
-router.delete('/:id', autenticar, autorizarProprio, async (req, res) => {
+// DELETE /api/usuarios/:id - Excluir conta (Dono da conta)
+router.delete('/:id', autenticar, autorizarProprio, async (req, res, next) => {
   try {
     const usuario = await Usuario.findByPk(req.params.id);
 
     if (!usuario) {
-      return res.status(404).json({ message: 'Usuário não encontrado' });
+      return res.status(404).json({
+        message: 'Usuário não encontrado',
+        code: 'NOT_FOUND_ERROR'
+      });
     }
 
-    // Aqui você pode implementar a lógica de exclusão real se necessário
-    // Por enquanto, apenas retornamos uma mensagem de sucesso
-    res.json({ message: 'Requisição de exclusão recebida' });
+    // Executa a exclusão definitiva do registro
+    await usuario.destroy();
 
+    return res.json({ message: 'Conta excluída com sucesso' });
   } catch (error) {
-    console.error('Erro ao processar exclusão:', error);
-    res.status(500).json({
-      message: 'Erro ao processar exclusão',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
+
+// ============================================
+// Funções Auxiliares de Escopo Interno
+// ============================================
 
 const atualizarDadosUsuario = async (usuario, dados) => {
   const atualizacao = {};
@@ -150,11 +162,7 @@ const atualizarDadosUsuario = async (usuario, dados) => {
   if (dados.nome) atualizacao.nome = dados.nome.trim();
   if (dados.telefone) atualizacao.telefone = dados.telefone.trim();
   if (dados.cpf) atualizacao.cpf = dados.cpf.replace(/\D/g, '');
-
-  if (dados.cidade && dados.cidade.trim()) {
-    const cidade = await Cidade.findOne({ where: { nome: dados.cidade.trim() } });
-    atualizacao.cidade_id = cidade ? cidade.id : usuario.cidade_id;
-  }
+  if (dados.cidade_id) atualizacao.cidade_id = parseInt(dados.cidade_id, 10);
 
   if (dados.password && dados.password.trim()) {
     atualizacao.senha = await bcrypt.hash(dados.password, 10);
@@ -163,29 +171,5 @@ const atualizarDadosUsuario = async (usuario, dados) => {
   await usuario.update(atualizacao);
 };
 
-const tratarErroAtualizacao = (error, res) => {
-  if (error.name === 'SequelizeValidationError') {
-    return res.status(400).json({
-      message: 'Dados inválidos',
-      errors: error.errors.map(err => ({
-        field: err.path,
-        message: err.message
-      }))
-    });
-  }
-
-  if (error.name === 'SequelizeUniqueConstraintError') {
-    const field = error.errors?.[0]?.path || 'campo';
-    return res.status(409).json({
-      message: `${field.charAt(0).toUpperCase() + field.slice(1)} já está em uso`,
-      field
-    });
-  }
-
-  res.status(500).json({
-    message: 'Erro ao atualizar usuário',
-    error: process.env.NODE_ENV === 'development' ? error.message : {}
-  });
-};
-
 module.exports = router;
+

@@ -1,19 +1,28 @@
 {
   "name": "impact_2026",
   "version": "1.0.0",
+  "description": "API Corporativa de Gerenciamento de Campanhas e Projetos - Impacta 2026",
   "main": "src/index.js",
   "scripts": {
-    "start": "npm run init:db && node src/index.js",
-    "dev": "npm run init:db && nodemon src/index.js",
-    "init:db": "node src/initDb.js",
-    "setup:db": "node scripts/populate-db.js",
-    "test": "jest --passWithNoTests",
-    "test:watch": "jest --watch"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "db:init": "node src/initDb.js",
+    "db:populate": "node scripts/populate-db.js",
+    "db:verify": "node scripts/verify-data.js",
+    "test": "jest --passWithNoTests --runInBand",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "express",
+    "sequelize",
+    "mysql",
+    "jest",
+    "jwt",
+    "api"
+  ],
+  "author": "Impacta Dev Team",
   "license": "ISC",
-  "description": "Backend do projeto Impact 2026",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

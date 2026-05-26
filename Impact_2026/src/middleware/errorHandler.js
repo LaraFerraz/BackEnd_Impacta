@@ -1,157 +1,126 @@
 /**
  * Error Handler Middleware - Centraliza tratamento de erros no Backend
  * Evita duplicação de lógica em múltiplas rotas
- * 
- * Uso nas rotas:
- * router.post('/endpoint', validador, async (req, res, next) => {
- *   try {
- *     // sua lógica
- *   } catch (error) {
- *     next(error);  // passa para o error handler
- *   }
- * });
  */
 
 const handleSequelizeValidationError = (error, res) => {
   const errors = error.errors.map(err => ({
     field: err.path,
-    message: `❌ ${err.message}`,
+    message: ` ${err.message}`,
     problema: err.message,
     type: err.type
   }));
 
   return res.status(400).json({
     message: 'Erro de validação do banco de dados',
-    errors,
-    code: 'SEQUELIZE_VALIDATION_ERROR'
+    code: 'SEQUELIZE_VALIDATION_ERROR',
+    errors
   });
 };
 
 const handleSequelizeUniqueConstraintError = (error, res) => {
-  const field = error.fields?.[0] || error.path;
+  const field = error.fields?.[0] || error.path || 'campo';
   const message = `${field} já está registrado no sistema`;
 
   return res.status(409).json({
     message: 'Erro de unicidade',
-    error: {
-      field,
-      message: `❌ ${message}`,
-      code: 'UNIQUE_CONSTRAINT_VIOLATION'
-    }
+    code: 'UNIQUE_CONSTRAINT_VIOLATION',
+    errors: [{ field, message: ` ${message}` }]
   });
 };
 
 const handleSequelizeForeignKeyConstraintError = (error, res) => {
   return res.status(400).json({
     message: 'Erro de referência no banco de dados',
-    error: {
-      message: '❌ Um ou mais registros relacionados não foram encontrados',
-      code: 'FOREIGN_KEY_CONSTRAINT_ERROR'
-    }
+    code: 'FOREIGN_KEY_CONSTRAINT_ERROR',
+    errors: [{ message: ' Um ou mais registros relacionados não foram encontrados' }]
   });
 };
 
 const handleSequelizeBaseError = (error, res) => {
   return res.status(500).json({
     message: 'Erro no banco de dados',
-    error: {
-      message: `❌ ${error.message}`,
-      code: 'DATABASE_ERROR'
-    }
+    code: 'DATABASE_ERROR',
+    errors: [{ message: ` ${error.message}` }]
   });
 };
 
 const handleAuthenticationError = (error, res) => {
   return res.status(401).json({
     message: 'Erro de autenticação',
-    error: {
-      message: '❌ Credenciais inválidas ou token expirado',
-      code: 'AUTHENTICATION_ERROR'
-    }
+    code: 'AUTHENTICATION_ERROR',
+    errors: [{ message: ' Credenciais inválidas ou token expirado' }]
   });
 };
 
 const handleAuthorizationError = (error, res) => {
   return res.status(403).json({
     message: 'Acesso negado',
-    error: {
-      message: '❌ Você não tem permissão para acessar este recurso',
-      code: 'AUTHORIZATION_ERROR'
-    }
+    code: 'AUTHORIZATION_ERROR',
+    errors: [{ message: ' Você não tem permissão para acessar este recurso' }]
   });
 };
 
 const handleNotFoundError = (error, res) => {
   return res.status(404).json({
     message: 'Recurso não encontrado',
-    error: {
-      message: '❌ O recurso solicitado não existe',
-      code: 'NOT_FOUND_ERROR'
-    }
+    code: 'NOT_FOUND_ERROR',
+    errors: [{ message: ' O recurso solicitado não existe' }]
   });
 };
 
 const handleValidationError = (error, res) => {
   return res.status(400).json({
     message: 'Dados inválidos',
-    error: {
-      message: `❌ ${error.message}`,
-      code: 'VALIDATION_ERROR'
-    }
+    code: 'VALIDATION_ERROR',
+    errors: [{ message: ` ${error.message}` }]
   });
 };
 
 /**
  * Middleware centralizado de erro
- * Deve ser usado após todas as outras rotas
- * app.use(errorHandler);
+ * Deve ser colocado após todas as definições de rotas
  */
 const errorHandler = (error, req, res, next) => {
-  // Log do erro (em produção, usar logger apropriado)
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  
+  // Log do erro (substituir por Winston / Pino em produção se necessário)
   console.error(`[ERROR] ${new Date().toISOString()} - ${error.message}`, error.stack);
 
-  // Erros do Sequelize
-  if (error.name === 'SequelizeValidationError') {
-    return handleSequelizeValidationError(error, res);
-  }
+  // Switch avaliativo para roteamento limpo dos manipuladores de erro
+  switch (true) {
+    case error.name === 'SequelizeValidationError':
+      return handleSequelizeValidationError(error, res);
 
-  if (error.name === 'SequelizeUniqueConstraintError') {
-    return handleSequelizeUniqueConstraintError(error, res);
-  }
+    case error.name === 'SequelizeUniqueConstraintError':
+      return handleSequelizeUniqueConstraintError(error, res);
 
-  if (error.name === 'SequelizeForeignKeyConstraintError') {
-    return handleSequelizeForeignKeyConstraintError(error, res);
-  }
+    case error.name === 'SequelizeForeignKeyConstraintError':
+      return handleSequelizeForeignKeyConstraintError(error, res);
 
-  if (error.name && error.name.includes('Sequelize')) {
-    return handleSequelizeBaseError(error, res);
-  }
+    case !!(error.name?.includes('Sequelize')):
+      return handleSequelizeBaseError(error, res);
 
-  // Erros customizados
-  if (error.code === 'AUTHENTICATION_ERROR') {
-    return handleAuthenticationError(error, res);
-  }
+    case error.code === 'AUTHENTICATION_ERROR':
+      return handleAuthenticationError(error, res);
 
-  if (error.code === 'AUTHORIZATION_ERROR') {
-    return handleAuthorizationError(error, res);
-  }
+    case error.code === 'AUTHORIZATION_ERROR':
+      return handleAuthorizationError(error, res);
 
-  if (error.code === 'NOT_FOUND') {
-    return handleNotFoundError(error, res);
-  }
+    case error.code === 'NOT_FOUND':
+      return handleNotFoundError(error, res);
 
-  if (error.code === 'VALIDATION_ERROR') {
-    return handleValidationError(error, res);
-  }
+    case error.code === 'VALIDATION_ERROR':
+      return handleValidationError(error, res);
 
-  // Erro genérico
-  return res.status(error.statusCode || 500).json({
-    message: 'Erro interno do servidor',
-    error: {
-      message: process.env.NODE_ENV === 'development' ? error.message : '❌ Algo deu errado',
-      code: 'INTERNAL_SERVER_ERROR'
-    }
-  });
+    default:
+      // Tratamento para Erro Genérico / Desconhecido
+      return res.status(error.statusCode || 500).json({
+        message: 'Erro interno do servidor',
+        code: 'INTERNAL_SERVER_ERROR',
+        errors: [{ message: isDevelopment ? error.message : '❌ Algo deu errado' }]
+      });
+  }
 };
 
 module.exports = errorHandler;

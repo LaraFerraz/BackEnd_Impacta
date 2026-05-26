@@ -1,12 +1,10 @@
 const express = require('express');
-const { Categoria, Projeto, Preferencias } = require('../middleware/models');
+const { Categoria, Projeto } = require('../middleware/models');
 
 const router = express.Router();
 
-// ============================================
-// GET - Listar todas as categorias
-// ============================================
-router.get('/', async (req, res) => {
+// GET /api/categorias - Listar todas as categorias
+router.get('/', async (req, res, next) => {
   try {
     const categorias = await Categoria.findAll({
       include: [
@@ -19,25 +17,17 @@ router.get('/', async (req, res) => {
       ]
     });
 
-    res.json({
-      success: true,
+    return res.json({
       data: categorias,
       total: categorias.length
     });
   } catch (error) {
-    console.error('Erro ao listar categorias:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao listar categorias',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-// ============================================
-// GET - Buscar categoria por ID
-// ============================================
-router.get('/:id', async (req, res) => {
+// GET /api/categorias/:id - Buscar categoria por ID
+router.get('/:id', async (req, res, next) => {
   try {
     const categoria = await Categoria.findByPk(req.params.id, {
       include: [
@@ -52,67 +42,43 @@ router.get('/:id', async (req, res) => {
 
     if (!categoria) {
       return res.status(404).json({
-        success: false,
-        message: 'Categoria não encontrada'
+        message: 'Categoria não encontrada',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
-    res.json({
-      success: true,
-      data: categoria
-    });
+    return res.json({ data: categoria });
   } catch (error) {
-    console.error('Erro ao buscar categoria:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar categoria',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-// ============================================
-// POST - Criar nova categoria
-// ============================================
-router.post('/', async (req, res) => {
+// POST /api/categorias - Criar nova categoria
+router.post('/', async (req, res, next) => {
   try {
     const { nome } = req.body;
 
-    if (!nome) {
+    if (!nome || !nome.trim()) {
       return res.status(400).json({
-        success: false,
-        message: 'Nome da categoria é obrigatório'
+        message: 'Dados inválidos',
+        code: 'VALIDATION_ERROR',
+        errors: [{ message: 'Nome da categoria é obrigatório' }]
       });
     }
 
-    const categoria = await Categoria.create({ nome });
+    const categoria = await Categoria.create({ nome: nome.trim() });
 
-    res.status(201).json({
-      success: true,
+    return res.status(201).json({
       message: 'Categoria criada com sucesso',
       data: categoria
     });
   } catch (error) {
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Categoria com este nome já existe'
-      });
-    }
-
-    console.error('Erro ao criar categoria:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao criar categoria',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-// ============================================
-// PUT - Atualizar categoria
-// ============================================
-router.put('/:id', async (req, res) => {
+// PUT /api/categorias/:id - Atualizar categoria
+router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { nome } = req.body;
@@ -121,68 +87,50 @@ router.put('/:id', async (req, res) => {
 
     if (!categoria) {
       return res.status(404).json({
-        success: false,
-        message: 'Categoria não encontrada'
+        message: 'Categoria não encontrada',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
     if (nome) {
-      categoria.nome = nome;
+      if (!nome.trim()) {
+        return res.status(400).json({
+          message: 'Dados inválidos',
+          code: 'VALIDATION_ERROR',
+          errors: [{ message: 'Nome da categoria não pode ser vazio' }]
+        });
+      }
+      categoria.nome = nome.trim();
+      await categoria.save();
     }
 
-    await categoria.save();
-
-    res.json({
-      success: true,
-      message: 'Categoria atualizada com sucesso',
+    return res.json({
+      message: 'Categoria updated com sucesso',
       data: categoria
     });
   } catch (error) {
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({
-        success: false,
-        message: 'Categoria com este nome já existe'
-      });
-    }
-
-    console.error('Erro ao atualizar categoria:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao atualizar categoria',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-// ============================================
-// DELETE - Deletar categoria
-// ============================================
-router.delete('/:id', async (req, res) => {
+// DELETE /api/categorias/:id - Deletar categoria
+router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-
     const categoria = await Categoria.findByPk(id);
 
     if (!categoria) {
       return res.status(404).json({
-        success: false,
-        message: 'Categoria não encontrada'
+        message: 'Categoria não encontrada',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
     await categoria.destroy();
 
-    res.json({
-      success: true,
-      message: 'Categoria deletada com sucesso'
-    });
+    return res.json({ message: 'Categoria deletada com sucesso' });
   } catch (error) {
-    console.error('Erro ao deletar categoria:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao deletar categoria',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 

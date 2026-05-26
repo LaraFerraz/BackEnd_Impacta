@@ -4,13 +4,14 @@ const { autenticar } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// ============================================
-// GET - Listar serviços com filtros
-// ============================================
-router.get('/', async (req, res) => {
+// GET /api/servicos - Listar serviços com filtros e paginação
+router.get('/', async (req, res, next) => {
   try {
     const { projeto_id, status_servico_id, page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
+    
+    const parsedPage = parseInt(page, 10) || 1;
+    const parsedLimit = parseInt(limit, 10) || 10;
+    const offset = (parsedPage - 1) * parsedLimit;
 
     const whereClause = {};
     if (projeto_id) whereClause.projeto_id = projeto_id;
@@ -23,94 +24,128 @@ router.get('/', async (req, res) => {
         { model: StatusServico, as: 'status', attributes: ['id', 'nome'] }
       ],
       order: [['id', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: parsedLimit,
+      offset
     });
 
-    res.json({
-      success: true,
+    return res.json({
       data: rows,
       pagination: {
         total: count,
-        pagina_atual: parseInt(page),
-        limite: parseInt(limit),
-        total_paginas: Math.ceil(count / limit)
+        pagina_atual: parsedPage,
+        limite: parsedLimit,
+        total_paginas: Math.ceil(count / parsedLimit)
       }
     });
   } catch (error) {
-    console.error('Erro ao listar serviços:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao listar serviços',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-// ============================================
-// GET - Buscar serviço por ID
-// ============================================
-router.get('/:id', async (req, res) => {
+// GET /api/servicos/campanha/status/:campanha_ativa - Listar serviços por status de campanha
+router.get('/campanha/status/:campanha_ativa', async (req, res, next) => {
+  try {
+    const { campanha_ativa } = req.params;
+    const { projeto_id, page = 1, limit = 10 } = req.query;
+
+    const parsedPage = parseInt(page, 10) || 1;
+    const parsedLimit = parseInt(limit, 10) || 10;
+    const offset = (parsedPage - 1) * parsedLimit;
+
+    const isCampanhaAtiva = campanha_ativa === 'true' || campanha_ativa === '1';
+
+    const whereClause = { campanha_ativa: isCampanhaAtiva };
+    if (projeto_id) whereClause.projeto_id = projeto_id;
+
+    const { count, rows } = await Servicos_disponiveis.findAndCountAll({
+      where: whereClause,
+      include: [
+        { model: Projeto, as: 'projeto', attributes: ['id', 'titulo', 'status_id'] },
+        { model: StatusServico, as: 'status', attributes: ['id', 'nome'] }
+      ],
+      order: [['id', 'DESC']],
+      limit: parsedLimit,
+      offset
+    });
+
+    return res.json({
+      data: rows,
+      filter: {
+        campanha_ativa: isCampanhaAtiva,
+        projeto_id: projeto_id ? parseInt(projeto_id, 10) : null
+      },
+      pagination: {
+        total: count,
+        pagina_atual: parsedPage,
+        limite: parsedLimit,
+        total_paginas: Math.ceil(count / parsedLimit)
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+// GET /api/servicos/:id - Buscar serviço por ID
+router.get('/:id', async (req, res, next) => {
   try {
     const servico = await Servicos_disponiveis.findByPk(req.params.id, {
       include: [
-        { model: Projeto, as: 'projeto' },
-        { model: StatusServico, as: 'status' }
+        { model: Projeto, as: 'projeto', attributes: ['id', 'titulo', 'criador_id', 'status_id'] },
+        { model: StatusServico, as: 'status', attributes: ['id', 'nome'] }
       ]
     });
 
     if (!servico) {
       return res.status(404).json({
-        success: false,
-        message: 'Serviço não encontrado'
+        message: 'Serviço não encontrado',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
-    res.json({
-      success: true,
-      data: servico
-    });
+    return res.json({ data: servico });
   } catch (error) {
-    console.error('Erro ao buscar serviço:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao buscar serviço',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-// ============================================
-// POST - Criar novo serviço
-// ============================================
-router.post('/', async (req, res) => {
+// POST /api/servicos - Criar novo serviço
+router.post('/', autenticar, async (req, res, next) => {
   try {
     const { projeto_id, nome_servico, descricao, quantidade_necessaria, status_servico_id } = req.body;
 
     if (!projeto_id || !nome_servico || !status_servico_id) {
       return res.status(400).json({
-        success: false,
-        message: 'Campos obrigatórios faltando: projeto_id, nome_servico, status_servico_id'
+        message: 'Dados inválidos',
+        code: 'VALIDATION_ERROR',
+        errors: [{ message: 'Campos obrigatórios faltando: projeto_id, nome_servico, status_servico_id' }]
       });
     }
 
-    // Verificar se o projeto existe e obter seu status
     const projeto = await Projeto.findByPk(projeto_id);
     if (!projeto) {
       return res.status(404).json({
-        success: false,
-        message: 'Projeto não encontrado'
+        message: 'Projeto não encontrado',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
-    // Definir campanha_ativa baseado no status do projeto (Ativa = 1)
-    const campanha_ativa = projeto.status_id === 1;
+    // Segurança: impede que usuários criem serviços em projetos de terceiros
+    if (projeto.criador_id !== req.usuario.id) {
+      return res.status(403).json({
+        message: 'Acesso negado',
+        code: 'AUTHORIZATION_ERROR',
+        errors: [{ message: 'Você não tem permissão para gerenciar serviços deste projeto' }]
+      });
+    }
+
+    const campanha_ativa = projeto.status_id === 1; // Status Ativa = 1
 
     const servico = await Servicos_disponiveis.create({
       projeto_id,
-      nome_servico,
-      descricao,
-      quantidade_necessaria,
+      nome_servico: nome_servico.trim(),
+      descricao: descricao ? descricao.trim() : null,
+      quantidade_necessaria: quantidade_necessaria || 1,
       status_servico_id,
       campanha_ativa
     });
@@ -122,28 +157,17 @@ router.post('/', async (req, res) => {
       ]
     });
 
-    res.status(201).json({
-      success: true,
+    return res.status(201).json({
       message: 'Serviço criado com sucesso',
-      data: servicoCompleto,
-      info: {
-        campanha_ativa: campanha_ativa ? 'Campanha está ativa' : 'Campanha não está ativa'
-      }
+      data: servicoCompleto
     });
   } catch (error) {
-    console.error('Erro ao criar serviço:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao criar serviço',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-// ============================================
-// PUT - Atualizar serviço
-// ============================================
-router.put('/:id', autenticar, async (req, res) => {
+// PUT /api/servicos/:id - Atualizar serviço
+router.put('/:id', autenticar, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { nome_servico, descricao, quantidade_necessaria, status_servico_id, campanha_ativa } = req.body;
@@ -154,21 +178,22 @@ router.put('/:id', autenticar, async (req, res) => {
 
     if (!servico) {
       return res.status(404).json({
-        success: false,
-        message: 'Serviço não encontrado'
+        message: 'Serviço não encontrado',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
-    // Verificar se o usuário é o criador do projeto
+    // Segurança: impede que usuários alterem serviços de projetos alheios
     if (servico.projeto.criador_id !== req.usuario.id) {
       return res.status(403).json({
-        success: false,
-        message: 'Você não tem permissão para editar este serviço'
+        message: 'Acesso negado',
+        code: 'AUTHORIZATION_ERROR',
+        errors: [{ message: 'Você não tem permissão para editar este serviço' }]
       });
     }
 
-    if (nome_servico) servico.nome_servico = nome_servico;
-    if (descricao !== undefined) servico.descricao = descricao;
+    if (nome_servico) servico.nome_servico = nome_servico.trim();
+    if (descricao !== undefined) servico.descricao = descricao ? descricao.trim() : null;
     if (quantidade_necessaria !== undefined) servico.quantidade_necessaria = quantidade_necessaria;
     if (status_servico_id) servico.status_servico_id = status_servico_id;
     if (campanha_ativa !== undefined) servico.campanha_ativa = campanha_ativa;
@@ -182,25 +207,17 @@ router.put('/:id', autenticar, async (req, res) => {
       ]
     });
 
-    res.json({
-      success: true,
+    return res.json({
       message: 'Serviço atualizado com sucesso',
       data: servicoAtualizado
     });
   } catch (error) {
-    console.error('Erro ao atualizar serviço:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao atualizar serviço',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-// ============================================
-// DELETE - Deletar serviço
-// ============================================
-router.delete('/:id', autenticar, async (req, res) => {
+// DELETE /api/servicos/:id - Deletar serviço
+router.delete('/:id', autenticar, async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -210,126 +227,67 @@ router.delete('/:id', autenticar, async (req, res) => {
 
     if (!servico) {
       return res.status(404).json({
-        success: false,
-        message: 'Serviço não encontrado'
+        message: 'Serviço não encontrado',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
-    // Verificar se o usuário é o criador do projeto
+    // Segurança: impede a deleção de registros por quem não é dono do projeto
     if (servico.projeto.criador_id !== req.usuario.id) {
       return res.status(403).json({
-        success: false,
-        message: 'Você não tem permissão para deletar este serviço'
+        message: 'Acesso negado',
+        code: 'AUTHORIZATION_ERROR',
+        errors: [{ message: 'Você não tem permissão para deletar este serviço' }]
       });
     }
 
     await servico.destroy();
-
-    res.json({
-      success: true,
-      message: 'Serviço deletado com sucesso'
-    });
+    return res.json({ message: 'Serviço deletado com sucesso' });
   } catch (error) {
-    console.error('Erro ao deletar serviço:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao deletar serviço',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 
-// ============================================
-// POST - Sincronizar status de campanha para todos os serviços de um projeto
-// ============================================
-router.post('/projeto/:projeto_id/sincronizar-status', async (req, res) => {
+// POST /api/servicos/projeto/:projeto_id/sincronizar-status - Sincronizar status de campanha
+router.post('/projeto/:projeto_id/sincronizar-status', autenticar, async (req, res, next) => {
   try {
     const { projeto_id } = req.params;
 
-    // Verificar se o projeto existe
     const projeto = await Projeto.findByPk(projeto_id);
     if (!projeto) {
       return res.status(404).json({
-        success: false,
-        message: 'Projeto não encontrado'
+        message: 'Projeto não encontrado',
+        code: 'NOT_FOUND_ERROR'
       });
     }
 
-    // Definir campanha_ativa baseado no status do projeto (Ativa = 1)
+    // Segurança: garante que apenas o dono do projeto pode disparar a sincronização em massa
+    if (projeto.criador_id !== req.usuario.id) {
+      return res.status(403).json({
+        message: 'Acesso negado',
+        code: 'AUTHORIZATION_ERROR',
+        errors: [{ message: 'Você não tem permissão para alterar os dados deste projeto' }]
+      });
+    }
+
     const campanha_ativa = projeto.status_id === 1;
 
-    // Atualizar todos os serviços do projeto
     const [updated] = await Servicos_disponiveis.update(
       { campanha_ativa },
       { where: { projeto_id } }
     );
 
-    res.json({
-      success: true,
-      message: `Status sincronizado com sucesso para ${updated} serviço(s)`,
+    return res.json({
+      message: 'Status sincronizado com sucesso',
       data: {
-        projeto_id,
+        projeto_id: parseInt(projeto_id, 10),
         campanha_ativa,
         servicos_atualizados: updated,
         status_projeto: projeto.status_id === 1 ? 'Ativa' : 'Não Ativa'
       }
     });
   } catch (error) {
-    console.error('Erro ao sincronizar status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao sincronizar status',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
-  }
-});
-
-// ============================================
-// GET - Listar serviços por status de campanha
-// ============================================
-router.get('/campanha/status/:campanha_ativa', async (req, res) => {
-  try {
-    const { campanha_ativa } = req.params;
-    const { projeto_id, page = 1, limit = 10 } = req.query;
-    const offset = (page - 1) * limit;
-
-    const whereClause = {
-      campanha_ativa: campanha_ativa === 'true' || campanha_ativa === '1'
-    };
-    if (projeto_id) whereClause.projeto_id = projeto_id;
-
-    const { count, rows } = await Servicos_disponiveis.findAndCountAll({
-      where: whereClause,
-      include: [
-        { model: Projeto, as: 'projeto', attributes: ['id', 'titulo', 'status_id'] },
-        { model: StatusServico, as: 'status', attributes: ['id', 'nome'] }
-      ],
-      order: [['id', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
-
-    res.json({
-      success: true,
-      data: rows,
-      filtro: {
-        campanha_ativa: campanha_ativa === 'true' || campanha_ativa === '1',
-        projeto_id: projeto_id || null
-      },
-      pagination: {
-        total: count,
-        pagina_atual: parseInt(page),
-        limite: parseInt(limit),
-        total_paginas: Math.ceil(count / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Erro ao listar serviços por status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erro ao listar serviços',
-      error: process.env.NODE_ENV === 'development' ? error.message : {}
-    });
+    return next(error);
   }
 });
 

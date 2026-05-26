@@ -54,14 +54,17 @@ module.exports = (sequelize) => {
       foreignKey: 'usuario_id',
       as: 'usuario'
     });
+
     Participacoes.belongsTo(models.Projeto, {
       foreignKey: 'projeto_id',
       as: 'projeto'
     });
+
     Participacoes.belongsTo(models.Servicos_disponiveis, {
       foreignKey: 'servico_id',
       as: 'servico'
     });
+
     Participacoes.belongsTo(models.StatusParticipacao, {
       foreignKey: 'status_participacao_id',
       as: 'status'

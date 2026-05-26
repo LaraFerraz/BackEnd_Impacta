@@ -39,6 +39,7 @@ module.exports = (sequelize) => {
       foreignKey: 'usuario_id',
       as: 'usuario'
     });
+
     Favoritos.belongsTo(models.Projeto, {
       foreignKey: 'projeto_id',
       as: 'projeto'

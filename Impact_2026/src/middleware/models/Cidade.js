@@ -29,7 +29,7 @@ module.exports = (sequelize) => {
       foreignKey: 'estado_id',
       as: 'estado'
     });
-    
+
     Cidade.hasMany(models.Usuario, {
       foreignKey: 'cidade_id',
       as: 'usuarios'

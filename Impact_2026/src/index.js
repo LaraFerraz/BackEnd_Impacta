@@ -1,37 +1,28 @@
 require('dotenv').config();
 
 const express = require('express');
-const cors = require('cors');
+const cors = require('var cors = require("cors")' && cors);
 const { sequelize } = require('./middleware/models');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+// Alterado para a porta 5000 para evitar colisão e espelhamento com o ecossistema React (3000)
+const PORT = process.env.PORT || 5000;
 
-// Configuração de CORS
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:3002',
-  'http://localhost:3003',
-  'http://localhost:3004',
-  'http://localhost:3005',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
-  'http://127.0.0.1:3002',
-  'http://127.0.0.1:3003',
-  'http://127.0.0.1:3004',
-  'http://127.0.0.1:3005'
-];
+// =========================================================================
+// Configurações de Segurança e Middlewares Globais
+// =========================================================================
 
-// Middlewares
+// Expressão regular calibrada: Permite explicitamente o React (3000) e o próprio backend (5000)
+const allowedOriginsRegex = /^http:\/\/(localhost|127\.0\.0\.1):(3000|5000)$/;
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS não permitido'));
+    // Permite requisições sem origem (como ferramentas mobile, Postman ou chamadas server-to-server)
+    if (!origin || allowedOriginsRegex.test(origin)) {
+      return callback(null, true);
     }
+    return callback(new Error('CORS não permitido para esta origem'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -41,22 +32,25 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Log
+// Middleware de Auditoria / Logging Minimalista
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  return next();
 });
 
-// Health check
+// =========================================================================
+// Endpoints Operacionais e Verificação de Saúde (Health Check)
+// =========================================================================
+
+// Corrigido: Alterado de 'router.get' para 'app.get' para evitar o ReferenceError
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Servidor rodando',
-    timestamp: new Date().toISOString()
-  });
+  res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
 
-// ROTAS (SEMPRE carregadas, inclusive nos testes)
+// =========================================================================
+// Definição do Pipeline de Rotas Globais da API
+// =========================================================================
+
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/paises', require('./routes/paisesRoutes'));
@@ -72,31 +66,40 @@ app.use('/api/avaliacoes', require('./routes/avaliacoesRoutes'));
 app.use('/api/favoritos', require('./routes/favoritosRoutes'));
 app.use('/api/servicos', require('./routes/servicosDisponiveisRoutes'));
 
-// Error handler centralizado
-app.use(errorHandler);
+// =========================================================================
+// Middlewares de Encerramento e Tratamento de Exceções (Ordem Crítica)
+// =========================================================================
 
-// 404
-app.use((req, res) => {
-  res.status(404).json({ message: 'Rota não encontrada' });
+// Catch 404: Captura requisições para rotas inexistentes e encaminha para o formatador
+app.use((req, res, next) => {
+  return res.status(404).json({
+    message: 'Rota não encontrada',
+    code: 'NOT_FOUND_ERROR'
+  });
 });
 
-// 🚀 Inicialização do servidor (NÃO roda em teste)
-async function startServer() {
+// Interceptador e Formatador Centralizado de Erros (Deve ser sempre o ÚLTIMO app.use)
+app.use(errorHandler);
+
+// =========================================================================
+// Inicialização do Servidor (Evita Duplo Bootstrap em Ambiente de Testes)
+// =========================================================================
+
+const startServer = async () => {
   try {
     await sequelize.authenticate();
-    console.log('Conexão com o banco de dados estabelecida com sucesso.');
+    console.log('✔ Conexão com o banco de dados estabelecida com sucesso.');
 
     app.listen(PORT, () => {
-      console.log(`Servidor rodando na porta ${PORT}`);
+      console.log(` Servidor operacional rodando na porta ${PORT}`);
       console.log(`Health check: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {
-    console.error('Erro ao iniciar servidor:', error);
+    console.error(' Erro crítico ao iniciar o servidor:', error);
     process.exit(1);
   }
-}
+};
 
-//  evita rodar servidor no Jest
 if (process.env.NODE_ENV !== 'test') {
   startServer();
 }
